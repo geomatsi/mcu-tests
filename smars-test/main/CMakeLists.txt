@@ -1,4 +1,4 @@
-idf_component_register(SRCS "main.c" "http.c" "camera.c" "motor.c"
+idf_component_register(SRCS "main.c" "http.c" "camera.c" "motor.c" "udp_client.c"
                     INCLUDE_DIRS ".")
 
 spiffs_create_partition_image(storage ../spiffs_image FLASH_IN_PROJECT)

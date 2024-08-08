@@ -109,6 +109,7 @@ void app_main(void)
 
 	xTaskCreate(motor_task, "motor_task", DEFAULT_STACK_SIZE, NULL, tskIDLE_PRIORITY, NULL);
 	xTaskCreate(http_task, "http_task", DEFAULT_STACK_SIZE, NULL, tskIDLE_PRIORITY, NULL);
+	xTaskCreate(udp_task, "udp_task", DEFAULT_STACK_SIZE, NULL, tskIDLE_PRIORITY, NULL);
 
 	/* start wifi */
 
