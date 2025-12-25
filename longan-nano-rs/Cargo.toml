@@ -33,6 +33,10 @@ path = "src/bin/blink.rs"
 name = "ball"
 path = "src/bin/ball.rs"
 
+[[bin]]
+name = "text"
+path = "src/bin/text.rs"
+
 # examples
 
 [[example]]
