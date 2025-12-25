@@ -32,6 +32,23 @@ Build and flash debug image:
 $ cargo make flash_debug <binary name>
 ```
 
+# Flash using dfu-util and cargo-make tool
+
+Before flashing bring the board into DFU mode: press and hold
+BOOT0 button, then press RESET button, then release buttons
+and run flash command.
+
+Build and flash release image:
+```bash
+$ cargo make dfu_release <binary name>
+```
+Build and flash debug image:
+```bash
+$ cargo make dfu_debug <binary name>
+```
+
+
+
 ### Debug using OpenOCD
 
 Start OpenOCD using any suitable JTAG probe:
