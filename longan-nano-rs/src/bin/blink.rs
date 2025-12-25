@@ -3,10 +3,10 @@
 
 use panic_halt as _;
 
-use riscv_rt::entry;
-use longan_nano::hal::{pac, prelude::*};
-use longan_nano::led::{Led, rgb};
 use longan_nano::hal::delay::McycleDelay;
+use longan_nano::hal::{pac, prelude::*};
+use longan_nano::led::{rgb, Led};
+use riscv_rt::entry;
 
 #[entry]
 fn main() -> ! {

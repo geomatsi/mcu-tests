@@ -128,7 +128,7 @@ fn main() -> ! {
         ball.bounce(0, width, 0, height);
         ball.step();
 
-        Circle::new(Point::new(ball.get_x(), ball.get_y()), ball.get_r() as u32)
+        Circle::new(Point::new(ball.get_x(), ball.get_y()), ball.get_r())
             .into_styled(bc)
             .draw(&mut display)
             .unwrap();

@@ -3,11 +3,11 @@
 
 use panic_halt as _;
 
+use embedded_graphics::mono_font::MonoTextStyle;
+use embedded_graphics::mono_font::{ascii::FONT_10X20, ascii::FONT_6X10};
+use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::{PrimitiveStyle, Rectangle};
-use embedded_graphics::mono_font::{ascii::FONT_6X10, ascii::FONT_10X20};
-use embedded_graphics::mono_font::MonoTextStyle;
-use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::text::Text;
 use longan_nano::hal::delay::McycleDelay;
 use longan_nano::hal::{pac, prelude::*};
@@ -47,9 +47,15 @@ fn main() -> ! {
         .unwrap();
 
     // type text
-    Text::new("MENU", Point::new(10, 10), t1).draw(&mut display).unwrap();
-    Text::new("Frequency", Point::new(10, 30), t2).draw(&mut display).unwrap();
-    Text::new("Signal", Point::new(10, 60), t3).draw(&mut display).unwrap();
+    Text::new("MENU", Point::new(10, 10), t1)
+        .draw(&mut display)
+        .unwrap();
+    Text::new("Frequency", Point::new(10, 30), t2)
+        .draw(&mut display)
+        .unwrap();
+    Text::new("Signal", Point::new(10, 60), t3)
+        .draw(&mut display)
+        .unwrap();
 
     loop {
         delay.delay_ms(100);

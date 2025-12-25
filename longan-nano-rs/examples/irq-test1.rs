@@ -1,16 +1,16 @@
 #![no_std]
 #![no_main]
 
-use gd32vf103xx_hal::pac::Interrupt;
-use panic_halt as _;
-use longan_nano::hal::{pac, prelude::*, pac::*, eclic::*};
-use gd32vf103xx_hal::timer;
-use gd32vf103xx_hal::timer::Timer;
-use longan_nano::led::{rgb, Led, BLUE, GREEN};
-use riscv_rt::entry;
-use critical_section::Mutex;
 use core::cell::RefCell;
 use core::ops::DerefMut;
+use critical_section::Mutex;
+use gd32vf103xx_hal::pac::Interrupt;
+use gd32vf103xx_hal::timer;
+use gd32vf103xx_hal::timer::Timer;
+use longan_nano::hal::{eclic::*, pac, pac::*, prelude::*};
+use longan_nano::led::{rgb, Led, BLUE, GREEN};
+use panic_halt as _;
+use riscv_rt::entry;
 
 static G_TMR: Mutex<RefCell<Option<Timer<TIMER1>>>> = Mutex::new(RefCell::new(None));
 static G_LED: Mutex<RefCell<Option<GREEN>>> = Mutex::new(RefCell::new(None));
@@ -34,7 +34,7 @@ fn main() -> ! {
     green.on();
     blue.off();
 
-    let mut timer =  Timer::timer1(dp.TIMER1, 1.hz(), &mut rcu);
+    let mut timer = Timer::timer1(dp.TIMER1, 1.hz(), &mut rcu);
     timer.listen(timer::Event::Update);
 
     critical_section::with(|cs| {
@@ -70,8 +70,7 @@ fn main() -> ! {
 #[no_mangle]
 fn TIMER1() {
     critical_section::with(|cs| {
-        if let Some(ref mut tim) = G_TMR.borrow(cs).borrow_mut().deref_mut()
-        {
+        if let Some(ref mut tim) = G_TMR.borrow(cs).borrow_mut().deref_mut() {
             tim.clear_update_interrupt_flag();
         }
     });
