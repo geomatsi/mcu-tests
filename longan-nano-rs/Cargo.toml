@@ -18,6 +18,9 @@ rotary-encoder-embedded = "0.5.0"
 embedded-hal-compat = "0.13.0"
 heapless = "0.9.2"
 
+si5351 = "0.2.0"
+bitbang-hal = "0.3.3"
+
 [dependencies.riscv]
 version = "0.10.1"
 features = ["critical-section-single-hart"]
@@ -43,6 +46,10 @@ path = "src/bin/text.rs"
 [[bin]]
 name = "encoder"
 path = "src/bin/encoder.rs"
+
+[[bin]]
+name = "cw"
+path = "src/bin/cw.rs"
 
 # examples
 
