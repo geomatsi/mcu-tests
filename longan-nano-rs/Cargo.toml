@@ -51,6 +51,10 @@ path = "src/bin/encoder.rs"
 name = "cw"
 path = "src/bin/cw.rs"
 
+[[bin]]
+name = "signal"
+path = "src/bin/signal.rs"
+
 # examples
 
 [[example]]
