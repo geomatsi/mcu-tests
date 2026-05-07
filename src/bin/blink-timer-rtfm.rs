@@ -2,99 +2,80 @@
 #![no_main]
 #![no_std]
 
-use core::fmt::Write;
-use cortex_m as cm;
-use hal::prelude::*;
-use hal::pac;
-use hal::timer::Event;
-use hal::timer::Timer;
 use panic_rtt_target as _;
-use rtic::app;
-use rtt_target::{rtt_init, UpChannel};
-use stm32f1xx_hal as hal;
 
-#[app(device = stm32f1xx_hal::pac, peripherals = true)]
-const APP: () = {
-    struct Resources {
-        // resources
-        #[init(0)]
+#[rtic::app(device = stm32f1xx_hal::pac)]
+mod app {
+    use rtt_target::{rprintln, rtt_init_print};
+    use stm32f1xx_hal::{
+        gpio::{gpioc::PC13, Output, PinState, PushPull},
+        pac,
+        prelude::*,
+        timer::{CounterMs, Event},
+    };
+
+    #[shared]
+    struct Shared {}
+
+    #[local]
+    struct Local {
         beat: u8,
-        // late resources
-        stream1: UpChannel,
-        stream2: UpChannel,
-        led1: hal::gpio::gpioc::PC13<hal::gpio::Output<hal::gpio::PushPull>>,
-        tmr2: hal::timer::CountDownTimer<stm32::TIM2>,
-        tmr3: hal::timer::CountDownTimer<stm32::TIM3>,
+        led: PC13<Output<PushPull>>,
+        tim2: CounterMs<pac::TIM2>,
+        tim3: CounterMs<pac::TIM3>,
     }
 
     #[init]
-    fn init(cx: init::Context) -> init::LateResources {
-        let channels = rtt_init! {
-            up: {
-                0: {
-                    size: 512
-                    name: "stream1"
-                }
-                1: {
-                    size: 512
-                    name: "stream2"
-                }
-            }
-        };
-
-        let stream1 = channels.up.0;
-        let stream2 = channels.up.1;
+    fn init(cx: init::Context) -> (Shared, Local) {
+        rtt_init_print!();
 
         let mut rcc = cx.device.RCC.constrain();
+        let mut gpioc = cx.device.GPIOC.split(&mut rcc);
+        let led = gpioc
+            .pc13
+            .into_push_pull_output_with_state(&mut gpioc.crh, PinState::High);
 
-        // configure clocks
-        let mut flash = cx.device.FLASH.constrain();
-        let clocks = rcc
-            .cfgr
-            .sysclk(8.MHz())
-            .pclk1(8.MHz())
-            .freeze(&mut flash.acr);
+        let mut tim2 = cx.device.TIM2.counter_ms(&mut rcc);
+        tim2.start(1.secs()).unwrap();
+        tim2.listen(Event::Update);
 
-        // configure PC13 pin to blink LED
-        let mut gpioc = cx.device.GPIOC.split(&mut rcc.apb2);
-        let l1 = gpioc.pc13.into_push_pull_output(&mut gpioc.crh);
+        let mut tim3 = cx.device.TIM3.counter_ms(&mut rcc);
+        tim3.start(200.millis()).unwrap();
+        tim3.listen(Event::Update);
 
-        // configure and start TIM2 periodic timer
-        let mut t2 = Timer::tim2(cx.device.TIM2, &clocks, &mut rcc.apb1).start_count_down(1.Hz());
-        t2.listen(Event::Update);
-
-        // configure and start TIM3 periodic timer
-        let mut t3 = Timer::tim3(cx.device.TIM3, &clocks, &mut rcc.apb1).start_count_down(5.Hz());
-        t3.listen(Event::Update);
-
-        init::LateResources {
-            stream1: stream1,
-            stream2: stream2,
-            led1: l1,
-            tmr2: t2,
-            tmr3: t3,
-        }
+        (
+            Shared {},
+            Local {
+                beat: 0,
+                led,
+                tim2,
+                tim3,
+            },
+        )
     }
 
     #[idle]
-    fn idle(_: idle::Context) -> ! {
+    fn idle(_cx: idle::Context) -> ! {
         loop {
-            cm::asm::nop();
+            cortex_m::asm::wfi();
         }
     }
 
-    #[task(binds = TIM2, resources = [beat, tmr2, stream1])]
+    #[task(binds = TIM2, priority = 1, local = [beat, tim2])]
     fn tim2(cx: tim2::Context) {
-        writeln!(cx.resources.stream1, "TIM2 beat = {}", *cx.resources.beat).ok();
-
-        *cx.resources.beat += 1;
-        cx.resources.tmr2.clear_update_interrupt_flag();
+        rprintln!("TIM2 beat = {}", *cx.local.beat);
+        *cx.local.beat = cx.local.beat.wrapping_add(1);
+        cx.local.tim2.clear_interrupt(Event::Update);
     }
 
-    #[task(binds = TIM3, resources = [led1, tmr3, stream2])]
+    #[task(binds = TIM3, priority = 1, local = [led, tim3])]
     fn tim3(cx: tim3::Context) {
-        writeln!(cx.resources.stream2, "TIM3 blink").ok();
-        cx.resources.led1.toggle().unwrap();
-        cx.resources.tmr3.clear_update_interrupt_flag();
+        rprintln!("TIM3 blink");
+        if cx.local.led.is_set_low() {
+            cx.local.led.set_high();
+        } else {
+            cx.local.led.set_low();
+        }
+        cx.local.tim3.clear_interrupt(Event::Update);
     }
-};
+}

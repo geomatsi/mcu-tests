@@ -29,9 +29,9 @@ stable toolchain and `thumbv7m-none-eabi` target automatically.
 
 # Legacy examples
 
-The oldest RTIC / DMA / bitbang experiments are still in-tree, but they are now
-opt-in so they do not block normal checks on the modernized dependency stack.
-The default path is still:
+The RTIC examples are now part of the default checked bin set. Only the oldest
+DMA / bitbang experiments remain opt-in so they do not block normal checks on
+the modernized dependency stack. The default path is:
 
 ```bash
 $ cargo check --bins
@@ -41,7 +41,6 @@ For targeted migration work later, enable the legacy gates explicitly:
 
 ```bash
 $ cargo check --bin adc-dma-test1 --features legacy_examples
-$ cargo check --bin blink-timer-rtfm --features legacy_rtic
 ```
 
 # Optional cargo-make / OpenOCD helpers

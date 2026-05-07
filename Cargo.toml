@@ -7,7 +7,6 @@ rust-version = "1.85"
 
 [features]
 legacy_examples = []
-legacy_rtic = []
 pwm = []
 
 # PWM features: tim/mapping selection
@@ -40,8 +39,9 @@ version = "0.6.2"
 [dependencies.panic-rtt-target]
 version = "0.2.0"
 
-[dependencies.cortex-m-rtic]
-version = "1.1.4"
+[dependencies.rtic]
+version = "2.2.0"
+features = ["thumbv7-backend"]
 
 [dependencies.cortex-m]
 version = "0.7.7"
@@ -99,7 +99,6 @@ required-features = ["legacy_examples"]
 [[bin]]
 name = "blink-timer-rtfm"
 path = "src/bin/blink-timer-rtfm.rs"
-required-features = ["legacy_rtic"]
 
 [[bin]]
 name = "i2c-bitbang-test1"
@@ -114,9 +113,7 @@ required-features = ["legacy_examples"]
 [[bin]]
 name = "rc522-test2"
 path = "src/bin/rc522-test2.rs"
-required-features = ["legacy_rtic"]
 
 [[bin]]
 name = "shared-adc-rtic"
 path = "src/bin/shared-adc-rtic.rs"
-required-features = ["legacy_rtic"]

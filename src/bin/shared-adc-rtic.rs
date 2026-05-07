@@ -2,109 +2,98 @@
 #![no_main]
 #![no_std]
 
-use cortex_m as cm;
-use hal::adc;
-use hal::adc::Adc;
-use hal::gpio::gpioa::{PA0, PA1};
-use hal::gpio::Analog;
-use hal::prelude::*;
-use hal::pac::ADC1;
 use panic_rtt_target as _;
-use rtic::app;
-use rtic::cyccnt::Instant;
-use rtic::cyccnt::U32Ext;
-use rtt_target::rprintln;
-use rtt_target::rtt_init_print;
-use shared_bus::AdcProxy;
-use shared_bus::CortexMMutex;
-use stm32f1xx_hal as hal;
 
-const PERIOD1: u32 = 24_000_000;
-const PERIOD2: u32 = 12_000_000;
+#[rtic::app(device = stm32f1xx_hal::pac)]
+mod app {
+    use rtt_target::{rprintln, rtt_init_print};
+    use shared_bus::{AdcProxy, CortexMMutex};
+    use stm32f1xx_hal::{
+        adc::Adc,
+        gpio::{
+            gpioa::{PA0, PA1},
+            Analog,
+        },
+        pac::{self, ADC1},
+        prelude::*,
+        rcc,
+        timer::{CounterMs, Event},
+    };
 
-#[app(device = stm32f1xx_hal::pac, peripherals = true, monotonic = rtic::cyccnt::CYCCNT)]
-const APP: () = {
-    struct Resources {
-        // late resources
+    #[shared]
+    struct Shared {}
+
+    #[local]
+    struct Local {
         adc_proxy1: AdcProxy<'static, CortexMMutex<Adc<ADC1>>>,
         adc_proxy2: AdcProxy<'static, CortexMMutex<Adc<ADC1>>>,
         adc_ch1: PA0<Analog>,
         adc_ch2: PA1<Analog>,
+        tim2: CounterMs<pac::TIM2>,
+        tim3: CounterMs<pac::TIM3>,
     }
 
-    #[init(schedule = [task1, task2])]
-    fn init(mut cx: init::Context) -> init::LateResources {
-        let mut flash = cx.device.FLASH.constrain();
-        let mut rcc = cx.device.RCC.constrain();
-        let clocks = rcc
-            .cfgr
-            .use_hse(8.MHz())
-            .sysclk(32.MHz())
-            .pclk1(16.MHz())
-            .adcclk(8.MHz())
-            .freeze(&mut flash.acr);
-
-        // init logging
+    #[init]
+    fn init(cx: init::Context) -> (Shared, Local) {
         rtt_init_print!();
 
-        // setup ADC
-        let adc = adc::Adc::adc1(cx.device.ADC1, &mut rcc.apb2, clocks);
+        let mut flash = cx.device.FLASH.constrain();
+        let mut rcc = cx.device.RCC.freeze(
+            rcc::Config::hse(8.MHz())
+                .sysclk(32.MHz())
+                .pclk1(16.MHz())
+                .adcclk(8.MHz()),
+            &mut flash.acr,
+        );
+
+        let adc = Adc::new(cx.device.ADC1, &mut rcc);
         let adc_bus: &'static _ = shared_bus::new_cortexm!(Adc<ADC1> = adc).unwrap();
         let adc_proxy1 = adc_bus.acquire_adc();
         let adc_proxy2 = adc_bus.acquire_adc();
 
-        // setup GPIOA
-        let mut gpioa = cx.device.GPIOA.split(&mut rcc.apb2);
+        let mut gpioa = cx.device.GPIOA.split(&mut rcc);
         let adc_ch1 = gpioa.pa0.into_analog(&mut gpioa.crl);
         let adc_ch2 = gpioa.pa1.into_analog(&mut gpioa.crl);
 
-        /* Enable the monotonic timer based on CYCCNT */
-        cx.core.DCB.enable_trace();
-        cx.core.DWT.enable_cycle_counter();
+        let mut tim2 = cx.device.TIM2.counter_ms(&mut rcc);
+        tim2.start(1.secs()).unwrap();
+        tim2.listen(Event::Update);
 
-        cx.schedule
-            .task1(Instant::now() + PERIOD1.cycles())
-            .unwrap();
+        let mut tim3 = cx.device.TIM3.counter_ms(&mut rcc);
+        tim3.start(500.millis()).unwrap();
+        tim3.listen(Event::Update);
 
-        cx.schedule
-            .task2(Instant::now() + PERIOD2.cycles())
-            .unwrap();
-
-        init::LateResources {
-            adc_ch1,
-            adc_ch2,
-            adc_proxy1,
-            adc_proxy2,
-        }
+        (
+            Shared {},
+            Local {
+                adc_proxy1,
+                adc_proxy2,
+                adc_ch1,
+                adc_ch2,
+                tim2,
+                tim3,
+            },
+        )
     }
 
     #[idle]
-    fn idle(_: idle::Context) -> ! {
+    fn idle(_cx: idle::Context) -> ! {
         loop {
-            cm::asm::nop();
+            cortex_m::asm::wfi();
         }
     }
 
-    #[task(schedule = [task1], resources = [adc_proxy1, adc_ch1])]
+    #[task(binds = TIM2, priority = 1, local = [adc_proxy1, adc_ch1, tim2])]
     fn task1(cx: task1::Context) {
-        let val: u16 = cx.resources.adc_proxy1.read(cx.resources.adc_ch1).unwrap();
+        let val: u16 = cx.local.adc_proxy1.read(cx.local.adc_ch1).unwrap();
         rprintln!("reading1: {}", val);
-        cx.schedule
-            .task1(Instant::now() + PERIOD1.cycles())
-            .unwrap();
+        cx.local.tim2.clear_interrupt(Event::Update);
     }
 
-    #[task(schedule = [task2], resources = [adc_proxy2, adc_ch2])]
+    #[task(binds = TIM3, priority = 1, local = [adc_proxy2, adc_ch2, tim3])]
     fn task2(cx: task2::Context) {
-        let val: u16 = cx.resources.adc_proxy2.read(cx.resources.adc_ch2).unwrap();
+        let val: u16 = cx.local.adc_proxy2.read(cx.local.adc_ch2).unwrap();
         rprintln!("reading2: {}", val);
-        cx.schedule
-            .task2(Instant::now() + PERIOD2.cycles())
-            .unwrap();
+        cx.local.tim3.clear_interrupt(Event::Update);
     }
-
-    // needed for RTFM timer queue and task management
-    extern "C" {
-        fn EXTI2();
-    }
-};
+}

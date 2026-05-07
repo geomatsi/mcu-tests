@@ -111,8 +111,86 @@ Refresh this STM32 Blue Pill Rust test project to a current embedded Rust baseli
 - Port the old ADC DMA experiments to the current `stm32f1xx-hal` DMA type signatures and timer / RCC API.
 - Revisit the bitbang I2C examples with either newer drivers that accept the current bitbang implementation or a locally compatible compatibility layer.
 
+## Legacy RTIC Refresh
+
+### Goal
+
+Refresh the `legacy_rtic` examples:
+
+- `blink-timer-rtfm`
+- `shared-adc-rtic`
+- `rc522-test2`
+
+### Commands Run
+
+46. `sed -n '1,260p' src/bin/blink-timer-rtfm.rs`
+47. `sed -n '1,260p' src/bin/shared-adc-rtic.rs`
+48. `sed -n '1,280p' src/bin/rc522-test2.rs`
+49. `sed -n '1,260p' ~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/stm32f1xx-hal-0.11.0/examples/timer-interrupt-rtic.rs`
+50. `sed -n '1,220p' ~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/stm32f1xx-hal-0.11.0/examples/exti_rtic.rs`
+51. `sed -n '1,240p' ~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/stm32f1xx-hal-0.11.0/examples/mfrc522.rs`
+52. `rg -n "remap\(&mut afio\.mapr\)|Spi1Remap|spi\(" ~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/stm32f1xx-hal-0.11.0/examples ~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/stm32f1xx-hal-0.11.0/src/spi.rs`
+53. `sed -n '1,260p' ~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/stm32f1xx-hal-0.11.0/src/spi.rs`
+54. `rg -n "new_cortexm|AdcProxy|acquire_adc" ~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/shared-bus-0.3.1/src`
+55. `sed -n '30,70p' ~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/stm32f1xx-hal-0.11.0/examples/serial-interrupt-idle.rs`
+56. `rg -n "enum Edge|RisingFalling|Rising|Falling" ~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/stm32f1xx-hal-0.11.0/src/gpio.rs`
+57. `cargo check --bins --features legacy_rtic --message-format short`
+58. `sed -n '1,140p' ~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/mfrc522-0.8.0/src/comm/eh02/spi.rs`
+59. `sed -n '1,120p' ~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/mfrc522-0.8.0/src/lib.rs`
+60. `nl -ba src/bin/rc522-test2.rs | sed -n '1,180p'`
+61. `cargo check --bins --features legacy_rtic --message-format short`
+
+### Notes
+
+- Rewrote all three old `const APP: () = { ... }` RTIC examples into current RTIC 1.x module-style apps.
+- Replaced removed `rtic::cyccnt` scheduling in `shared-adc-rtic` with two hardware timer interrupt tasks. This keeps the example concurrent and periodic without adding new monotonic dependencies.
+- Replaced old HAL timer and GPIO APIs with `counter_ms`, `clear_interrupt(Event::Update)`, current `split(&mut rcc)`, and current EXTI setup.
+- Reworked the MFRC522 example to the current driver type-state API:
+  - `mfrc522::comm::eh02::spi::SpiInterface`
+  - explicit `Initialized` state
+  - current SPI remap flow via `.remap(&mut afio.mapr).spi(...)`
+
+### Outcome
+
+- `cargo check --bins --features legacy_rtic`: passes
+- `cargo check --bins`: still passes
+- Remaining non-passing legacy area is now limited to `legacy_examples` DMA / bitbang experiments, not the RTIC set
+
 ## Ideas
 
 - Prefer a compatible upgrade path that keeps the project useful as a scratchpad of examples instead of forcing a full architectural rewrite.
 - Replace deprecated `cargo-flash` references with `probe-rs` tooling where appropriate.
 - Consider pinning a current embedded target toolchain via `rust-toolchain.toml` if verification depends on nightly or specific components.
+
+## RTIC Finalization
+
+### Goal
+
+Finish the RTIC migration:
+
+- bump RTIC to the current crate line
+- remove the `legacy_rtic` feature gate entirely
+- keep the migration log appended in place
+
+### Commands Run
+
+62. `sed -n '1,240p' Cargo.toml`
+63. `sed -n '1,260p' worklog.md`
+64. `sed -n '1,220p' README.md`
+65. `rg -n "rtic::app|cortex_m_rtic|use rtic|legacy_rtic|required-features" src/bin Cargo.toml README.md`
+66. `rg -n "legacy_rtic|cortex-m-rtic|RTIC 1\\.x|oldest RTIC|opt-in" .`
+67. `cargo check --bins --message-format short`
+68. `rg -n "legacy_rtic" Cargo.toml README.md src .github .cargo`
+
+### Notes
+
+- Replaced the old `cortex-m-rtic` dependency line with `rtic = "2.2.0"` and removed the dedicated `legacy_rtic` Cargo feature from the manifest.
+- RTIC 2.x requires an explicit backend selection; for `thumbv7m-none-eabi` on STM32F103 the correct choice is `features = ["thumbv7-backend"]`.
+- Removed the `required-features = ["legacy_rtic"]` gates from the RTIC binaries so they are part of the normal `cargo check --bins` path.
+- Updated the README to reflect that only the DMA / bitbang holdouts remain opt-in legacy examples.
+- RTIC 2.x also rejects the older RTIC 1.x-style `#[init] -> (Shared, Local, Monotonics)` signature when no monotonic is declared. The three RTIC bins now return just `(Shared, Local)`.
+
+### Outcome
+
+- `cargo check --bins`: passes with the RTIC examples in the default bin set
+- No active `legacy_rtic` references remain outside this historical worklog
