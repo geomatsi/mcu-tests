@@ -64,6 +64,12 @@ version = "0.3.3"
 version = "0.3.1"
 features = ["cortex-m"]
 
+[profile.dev]
+opt-level = "s"
+codegen-units = 1
+debug = 1
+lto = "thin"
+
 [[bin]]
 name = "pwm-test2"
 path = "src/bin/pwm-test2.rs"

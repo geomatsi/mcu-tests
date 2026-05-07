@@ -354,3 +354,36 @@ Correct the semantic regression introduced while modernizing `adc-dma-test3` thr
   - moving RC522 examples off the `eh02` path
   - updating remaining local examples that directly use 0.2 traits
 - Even removing the direct `embedded-hal = "0.2.7"` dependency from the manifest would not necessarily remove 0.2 from the build graph as long as those crates remain.
+
+## Debug Build Tuning
+
+### Goal
+
+Make the default `cargo build` path fit on the Blue Pill flash in the `dev` profile.
+
+### Commands Run
+
+108. `cargo build`
+109. `sed -n '1,220p' Cargo.toml`
+110. `find .cargo -maxdepth 2 -type f | sort | xargs -r sed -n '1,220p'`
+111. `rg -n "memory.x|link.x|profile|lto|codegen-units|opt-level|debug" -S .`
+112. `cargo build`
+
+### Notes
+
+- The failure was a real embedded link failure in the default debug profile, not a host-only artifact.
+- `cargo build` failed while linking `rc522-test2` with:
+  - `.rodata` / `.data` overflow in `FLASH`
+  - total overflow of roughly 3.4 KB
+- The project already used `--gc-sections`, so the main remaining lever was the Cargo dev profile rather than linker-script cleanup.
+- Added a size-conscious `[profile.dev]` configuration to keep the default debug build usable on the target:
+  - `opt-level = "s"`
+  - `codegen-units = 1`
+  - `debug = 1`
+  - `lto = "thin"`
+- `debug = 1` keeps reduced debug info for debugging, while `opt-level = "s"` and `thin` LTO cut flash usage enough for the larger examples to link in dev mode.
+- This changes compile-time behavior for debug builds, but does not affect the release profile.
+
+### Outcome
+
+- `cargo build`: passes
