@@ -5,7 +5,7 @@
 use core::fmt::Write;
 use cortex_m as cm;
 use hal::prelude::*;
-use hal::stm32;
+use hal::pac;
 use hal::timer::Event;
 use hal::timer::Timer;
 use panic_rtt_target as _;
@@ -13,7 +13,7 @@ use rtic::app;
 use rtt_target::{rtt_init, UpChannel};
 use stm32f1xx_hal as hal;
 
-#[app(device = stm32f1xx_hal::stm32, peripherals = true)]
+#[app(device = stm32f1xx_hal::pac, peripherals = true)]
 const APP: () = {
     struct Resources {
         // resources
@@ -51,8 +51,8 @@ const APP: () = {
         let mut flash = cx.device.FLASH.constrain();
         let clocks = rcc
             .cfgr
-            .sysclk(8.mhz())
-            .pclk1(8.mhz())
+            .sysclk(8.MHz())
+            .pclk1(8.MHz())
             .freeze(&mut flash.acr);
 
         // configure PC13 pin to blink LED
@@ -60,11 +60,11 @@ const APP: () = {
         let l1 = gpioc.pc13.into_push_pull_output(&mut gpioc.crh);
 
         // configure and start TIM2 periodic timer
-        let mut t2 = Timer::tim2(cx.device.TIM2, &clocks, &mut rcc.apb1).start_count_down(1.hz());
+        let mut t2 = Timer::tim2(cx.device.TIM2, &clocks, &mut rcc.apb1).start_count_down(1.Hz());
         t2.listen(Event::Update);
 
         // configure and start TIM3 periodic timer
-        let mut t3 = Timer::tim3(cx.device.TIM3, &clocks, &mut rcc.apb1).start_count_down(5.hz());
+        let mut t3 = Timer::tim3(cx.device.TIM3, &clocks, &mut rcc.apb1).start_count_down(5.Hz());
         t3.listen(Event::Update);
 
         init::LateResources {

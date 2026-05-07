@@ -1,61 +1,56 @@
 ![Rust](https://github.com/geomatsi/rust-blue-pill-tests/workflows/Rust/badge.svg?branch=master)
 
-# probe-rs tools
-Flash release image using cargo-flash:
+# Probe-rs workflow
+
+The project now uses `.cargo/config.toml` with a `probe-rs run` target runner for
+`thumbv7m-none-eabi`, so the default happy path is:
+
+```bash
+$ cargo run --bin <binary name>
+```
+
+Flash-only with probe-rs tools:
+
 ```bash
 $ cargo flash --release --chip STM32F103C8 --bin <binary name>
 ```
 
-Flash debug image using cargo-embed:
-```bash
-$  cargo embed --bin <binary name> flash
-```
+RTT / GDB session with `cargo-embed`:
 
-Run flashed image attaching RTT debug console:
 ```bash
+$ cargo embed --bin <binary name> flash
 $ cargo embed --bin <binary name>
 ```
 
-# cargo-make tools
-Start tmux debug environment with ST-Link:
+# Toolchain
+
+The repository includes `rust-toolchain.toml`, so `rustup` will pick the right
+stable toolchain and `thumbv7m-none-eabi` target automatically.
+
+# Legacy examples
+
+The oldest RTIC / DMA / bitbang experiments are still in-tree, but they are now
+opt-in so they do not block normal checks on the modernized dependency stack.
+The default path is still:
+
+```bash
+$ cargo check --bins
+```
+
+For targeted migration work later, enable the legacy gates explicitly:
+
+```bash
+$ cargo check --bin adc-dma-test1 --features legacy_examples
+$ cargo check --bin blink-timer-rtfm --features legacy_rtic
+```
+
+# Optional cargo-make / OpenOCD helpers
+
+The existing `cargo make` tasks and `tools/openocd.cfg` helpers are still here
+if you want the older OpenOCD-based flow:
+
 ```bash
 $ cargo make debug
-```
-Flash release image:
-```bash
 $ cargo make flash_release <binary name>
-```
-Flash debug image:
-```bash
 $ cargo make flash_debug <binary name>
 ```
-
-# Debug options
-## Semihosting debug
-Commands:
-```bash
-  $ sudo openocd -f tools/openocd.cfg -c 'attach ()'
-  $ cargo build --bin test
-  $ cargo run --bin test
-```
-
-## ITM debug
-Commands:
-```bash
-  $ mkfifo /tmp/itm.fifo
-  $ ~/.cargo/bin/itmdump -f /tmp/itm.fifo -F
-  $ cargo build --bin test
-  $ cargo run --bin test
-```
-SWO pin PB3 on BluePill has to be connected to appropriate SWO pin on
-debugger/programmer. Note that ST-Link does not have SWO pin,
-while Jlink Pro has.
-
-## RTT debug
-Commands
-```bash
-$ cargo build --bin test
-$ cargo embed --bin test flash
-$ cargo embed --bin test
-```
-

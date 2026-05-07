@@ -9,7 +9,7 @@ use embedded_hal::digital::v2::OutputPin;
 use hal::gpio::*;
 use hal::prelude::*;
 use hal::spi::Spi;
-use hal::stm32;
+use hal::pac;
 use hal::timer::Event;
 use hal::timer::Timer;
 use mfrc522::Mfrc522;
@@ -25,7 +25,7 @@ type SpiMosiType = gpiob::PB5<Alternate<PushPull>>;
 type SpiNssType = gpioa::PA15<Output<PushPull>>;
 type SpiType = Spi<stm32::SPI1, Spi1Remap, (SpiSckType, SpiMisoType, SpiMosiType), u8>;
 
-#[app(device = stm32f1xx_hal::stm32, peripherals = true)]
+#[app(device = stm32f1xx_hal::pac, peripherals = true)]
 const APP: () = {
     struct Resources {
         // late resources
@@ -61,8 +61,8 @@ const APP: () = {
 
         let clocks = rcc
             .cfgr
-            .sysclk(8.mhz())
-            .pclk1(8.mhz())
+            .sysclk(8.MHz())
+            .pclk1(8.MHz())
             .freeze(&mut flash.acr);
 
         let mut gpioa = cx.device.GPIOA.split(&mut rcc.apb2);
@@ -76,7 +76,7 @@ const APP: () = {
 
         // configure and start TIM3 periodic timer
 
-        let mut tmr = Timer::tim3(cx.device.TIM3, &clocks, &mut rcc.apb1).start_count_down(5.hz());
+        let mut tmr = Timer::tim3(cx.device.TIM3, &clocks, &mut rcc.apb1).start_count_down(5.Hz());
         tmr.listen(Event::Update);
 
         // configure  external irq line from NFC chip
@@ -104,7 +104,7 @@ const APP: () = {
             (sck, miso, mosi),
             &mut afio.mapr,
             mfrc522::MODE,
-            1.mhz(),
+            1.MHz(),
             clocks,
             &mut rcc.apb2,
         );

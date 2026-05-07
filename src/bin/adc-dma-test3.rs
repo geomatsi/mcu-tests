@@ -14,8 +14,8 @@ use hal::dma::{Transfer, W};
 use hal::gpio;
 use hal::pac;
 use hal::prelude::*;
-use hal::stm32;
-use hal::stm32::interrupt;
+use hal::pac;
+use hal::pac::interrupt;
 use panic_semihosting as _;
 use stm32f1xx_hal as hal;
 use stm32f1xx_hal::adc::Continuous;
@@ -35,7 +35,7 @@ fn main() -> ! {
     let mut rcc = dp.RCC.constrain();
     let mut nvic = cp.NVIC;
 
-    let clocks = rcc.cfgr.adcclk(2.mhz()).freeze(&mut flash.acr);
+    let clocks = rcc.cfgr.adcclk(2.MHz()).freeze(&mut flash.acr);
 
     // delay
     let mut delay = Delay::new(cp.SYST, clocks);
@@ -76,15 +76,15 @@ fn main() -> ! {
                 G_DMA.borrow(cs).replace(None),
                 G_BUF.borrow(cs).replace(None),
             ) {
-                hprintln!("IDLE: start next xfer").unwrap();
+                hprintln!("IDLE: start next xfer");
                 let xfer = adc_dma.read(buf);
                 G_XFR.borrow(cs).replace(Some(xfer));
             } else {
-                hprintln!("IDLE: ERR: no rdma").unwrap();
+                hprintln!("IDLE: ERR: no rdma");
             }
         });
 
-        hprintln!("IDLE: wait 5 sec").unwrap();
+        hprintln!("IDLE: wait 5 sec");
         delay.delay_ms(5_000u16);
     }
 }
@@ -94,11 +94,11 @@ fn DMA1_CHANNEL1() {
     cm::interrupt::free(|cs| {
         if let Some(xfer) = G_XFR.borrow(cs).replace(None) {
             let (buf, adc_dma) = xfer.wait();
-            hprintln!("DMA1_CH1 IRQ: results: {:?}", buf).unwrap();
+            hprintln!("DMA1_CH1 IRQ: results: {:?}", buf);
             G_DMA.borrow(cs).replace(Some(adc_dma));
             G_BUF.borrow(cs).replace(Some(buf));
         } else {
-            hprintln!("DMA1_CH1 IRQ: ERR: no xfer").unwrap();
+            hprintln!("DMA1_CH1 IRQ: ERR: no xfer");
         }
     });
 }

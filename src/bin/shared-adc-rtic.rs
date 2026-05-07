@@ -8,7 +8,7 @@ use hal::adc::Adc;
 use hal::gpio::gpioa::{PA0, PA1};
 use hal::gpio::Analog;
 use hal::prelude::*;
-use hal::stm32::ADC1;
+use hal::pac::ADC1;
 use panic_rtt_target as _;
 use rtic::app;
 use rtic::cyccnt::Instant;
@@ -22,7 +22,7 @@ use stm32f1xx_hal as hal;
 const PERIOD1: u32 = 24_000_000;
 const PERIOD2: u32 = 12_000_000;
 
-#[app(device = stm32f1xx_hal::stm32, peripherals = true, monotonic = rtic::cyccnt::CYCCNT)]
+#[app(device = stm32f1xx_hal::pac, peripherals = true, monotonic = rtic::cyccnt::CYCCNT)]
 const APP: () = {
     struct Resources {
         // late resources
@@ -38,10 +38,10 @@ const APP: () = {
         let mut rcc = cx.device.RCC.constrain();
         let clocks = rcc
             .cfgr
-            .use_hse(8.mhz())
-            .sysclk(32.mhz())
-            .pclk1(16.mhz())
-            .adcclk(8.mhz())
+            .use_hse(8.MHz())
+            .sysclk(32.MHz())
+            .pclk1(16.MHz())
+            .adcclk(8.MHz())
             .freeze(&mut flash.acr);
 
         // init logging

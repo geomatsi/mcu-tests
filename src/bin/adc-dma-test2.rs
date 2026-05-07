@@ -21,7 +21,7 @@ fn main() -> ! {
     let dp = pac::Peripherals::take().unwrap();
     let mut flash = dp.FLASH.constrain();
     let mut rcc = dp.RCC.constrain();
-    let clocks = rcc.cfgr.adcclk(2.mhz()).freeze(&mut flash.acr);
+    let clocks = rcc.cfgr.adcclk(2.MHz()).freeze(&mut flash.acr);
 
     // dma channel #1
     let dma_ch1 = dp.DMA1.split(&mut rcc.ahb).1;
@@ -48,7 +48,7 @@ fn main() -> ! {
         buf = unsafe { G_BUF.take().unwrap() };
 
         let (buf1, adc_dma1) = adc_dma.read(buf).wait();
-        hprintln!("{:#?} ", buf1).unwrap();
+        hprintln!("{:#?} ", buf1);
 
         unsafe {
             G_ADC.replace(adc_dma1);

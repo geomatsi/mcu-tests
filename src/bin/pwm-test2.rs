@@ -66,7 +66,7 @@ fn main() -> ! {
         Timer::tim2(p.TIM2, &clocks, &mut rcc.apb1).pwm::<Tim2NoRemap, _, _, _>(
             (p1, p2, p3, p4),
             &mut afio.mapr,
-            10.khz(),
+            10.kHz(),
         )
     };
 
@@ -87,7 +87,7 @@ fn main() -> ! {
         Timer::tim2(p.TIM2, &clocks, &mut rcc.apb1).pwm::<Tim2PartialRemap1, _, _, _>(
             (p1, p2, p3, p4),
             &mut afio.mapr,
-            10.khz(),
+            10.kHz(),
         )
     };
 
@@ -105,7 +105,7 @@ fn main() -> ! {
         Timer::tim2(p.TIM2, &clocks, &mut rcc.apb1).pwm::<Tim2PartialRemap2, _, _, _>(
             (p1, p2, p3, p4),
             &mut afio.mapr,
-            10.khz(),
+            10.kHz(),
         )
     };
 
@@ -126,7 +126,7 @@ fn main() -> ! {
         Timer::tim2(p.TIM2, &clocks, &mut rcc.apb1).pwm::<Tim2FullRemap, _, _, _>(
             (p1, p2, p3, p4),
             &mut afio.mapr,
-            10.khz(),
+            10.kHz(),
         )
     };
 
@@ -144,7 +144,7 @@ fn main() -> ! {
         Timer::tim3(p.TIM3, &clocks, &mut rcc.apb1).pwm::<Tim3NoRemap, _, _, _>(
             (p1, p2, p3, p4),
             &mut afio.mapr,
-            10.khz(),
+            10.kHz(),
         )
     };
 
@@ -165,7 +165,7 @@ fn main() -> ! {
         Timer::tim3(p.TIM3, &clocks, &mut rcc.apb1).pwm::<Tim3PartialRemap, _, _, _>(
             (p1, p2, p3, p4),
             &mut afio.mapr,
-            10.khz(),
+            10.kHz(),
         )
     };
 
@@ -182,7 +182,7 @@ fn main() -> ! {
         Timer::tim4(p.TIM4, &clocks, &mut rcc.apb1).pwm::<Tim4NoRemap, _, _, _>(
             (p1, p2, p3, p4),
             &mut afio.mapr,
-            10.khz(),
+            10.kHz(),
         )
     };
 
@@ -190,24 +190,24 @@ fn main() -> ! {
     let max: u16 = chan.0.get_max_duty();
     let duty: u16 = max / 2;
 
-    hprintln!("PWM max duty {}, duty {}", max, duty).unwrap();
+    hprintln!("PWM max duty {}, duty {}", max, duty);
 
     chan.0.enable();
     chan.1.enable();
     chan.2.enable();
     chan.3.enable();
 
-    hprintln!("Lets rock !").unwrap();
+    hprintln!("Lets rock !");
 
     loop {
-        hprintln!("ping...").unwrap();
+        hprintln!("ping...");
         chan.0.set_duty(duty);
         chan.1.set_duty(duty);
         chan.2.set_duty(duty);
         chan.3.set_duty(duty);
         delay.delay_ms(500u16);
 
-        hprintln!("pong...").unwrap();
+        hprintln!("pong...");
         chan.0.set_duty(0);
         chan.1.set_duty(0);
         chan.2.set_duty(0);

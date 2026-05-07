@@ -17,7 +17,7 @@ fn main() -> ! {
     let dp = pac::Peripherals::take().unwrap();
     let mut flash = dp.FLASH.constrain();
     let mut rcc = dp.RCC.constrain();
-    let clocks = rcc.cfgr.adcclk(2.mhz()).freeze(&mut flash.acr);
+    let clocks = rcc.cfgr.adcclk(2.MHz()).freeze(&mut flash.acr);
 
     // dma channel #1
     let dma_ch1 = dp.DMA1.split(&mut rcc.ahb).1;
@@ -38,7 +38,7 @@ fn main() -> ! {
      * Consider the following simple loop:
      * loop {
      *     let (buf, adc_dma) = adc_dma.read(buf).wait();
-     *     hprintln!("{:#?}", buf).unwrap();
+     *     hprintln!("{:#?}", buf);
      * }
      *
      * This approach does not work due to the following error:
@@ -58,6 +58,6 @@ fn read_loop(
     adc_dma: adc::AdcDma<gpio::gpioa::PA0<gpio::Analog>, Continuous>,
 ) -> ! {
     let (buf, adc_dma) = adc_dma.read(buf).wait();
-    hprintln!("{:#?} ", buf).unwrap();
+    hprintln!("{:#?} ", buf);
     read_loop(buf, adc_dma);
 }

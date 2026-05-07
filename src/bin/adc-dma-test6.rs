@@ -14,7 +14,7 @@ use hal::dma::{Transfer, W};
 use hal::gpio::gpioa::{PA0, PA1, PA2, PA3, PA4};
 use hal::gpio::Analog;
 use hal::prelude::*;
-use hal::stm32;
+use hal::pac;
 use panic_semihosting as _;
 use rtic::app;
 use rtic::cyccnt::Instant;
@@ -61,7 +61,7 @@ pub enum State {
     Two,
 }
 
-#[app(device = stm32f1xx_hal::stm32, peripherals = true, monotonic = rtic::cyccnt::CYCCNT)]
+#[app(device = stm32f1xx_hal::pac, peripherals = true, monotonic = rtic::cyccnt::CYCCNT)]
 const APP: () = {
     struct Resources {
         // late resources
@@ -81,8 +81,8 @@ const APP: () = {
         let mut flash = cx.device.FLASH.constrain();
         let mut rcc = cx.device.RCC.constrain();
 
-        let clocks = rcc.cfgr.adcclk(1.mhz()).freeze(&mut flash.acr);
-        //let clocks = rcc.cfgr.use_hse(8.mhz()).sysclk(32.mhz()).pclk1(16.mhz()).adcclk(8.mhz()).freeze(&mut flash.acr);
+        let clocks = rcc.cfgr.adcclk(1.MHz()).freeze(&mut flash.acr);
+        //let clocks = rcc.cfgr.use_hse(8.MHz()).sysclk(32.MHz()).pclk1(16.MHz()).adcclk(8.MHz()).freeze(&mut flash.acr);
 
         // dma channel #1
         let mut dma_ch1 = cx.device.DMA1.split(&mut rcc.ahb).1;
@@ -147,22 +147,22 @@ const APP: () = {
                 if let (Some(adc_dma), Some(buffer)) =
                     (cx.resources.adc_dma1.take(), cx.resources.buffer1.take())
                 {
-                    hprintln!("TASK: start next xfer").unwrap();
+                    hprintln!("TASK: start next xfer");
                     let transfer = adc_dma.read(buffer);
                     *cx.resources.transfer1 = Some(transfer);
                 } else {
-                    hprintln!("TASK: ERR: no ADC/DMA type One").unwrap();
+                    hprintln!("TASK: ERR: no ADC/DMA type One");
                 }
             }
             State::Two => {
                 if let (Some(adc_dma), Some(buffer)) =
                     (cx.resources.adc_dma2.take(), cx.resources.buffer2.take())
                 {
-                    hprintln!("TASK: start next xfer").unwrap();
+                    hprintln!("TASK: start next xfer");
                     let transfer = adc_dma.read(buffer);
                     *cx.resources.transfer2 = Some(transfer);
                 } else {
-                    hprintln!("TASK: ERR: no ADC/DMA type Two").unwrap();
+                    hprintln!("TASK: ERR: no ADC/DMA type Two");
                 }
             }
         }
@@ -178,14 +178,14 @@ const APP: () = {
                     let (buf1, adc_dma) = transfer.wait();
                     let (adc, pins1, chan) = adc_dma.split();
 
-                    hprintln!("DMA1_CH1 IRQ: ONE: {:?}", buf1).unwrap();
+                    hprintln!("DMA1_CH1 IRQ: ONE: {:?}", buf1);
 
                     *cx.resources.adc_dma2 = Some(adc.with_scan_dma(pins2, chan));
                     *cx.resources.adc_pins1 = Some(pins1);
                     *cx.resources.buffer1 = Some(buf1);
                     *cx.resources.state = State::Two;
                 } else {
-                    hprintln!("DMA1_CH1 IRQ: ERR: no transfer of type One").unwrap();
+                    hprintln!("DMA1_CH1 IRQ: ERR: no transfer of type One");
                 }
             }
             State::Two => {
@@ -195,14 +195,14 @@ const APP: () = {
                     let (buf2, adc_dma) = transfer.wait();
                     let (adc, pins2, chan) = adc_dma.split();
 
-                    hprintln!("DMA1_CH1 IRQ: TWO: {:?}", buf2).unwrap();
+                    hprintln!("DMA1_CH1 IRQ: TWO: {:?}", buf2);
 
                     *cx.resources.adc_dma1 = Some(adc.with_scan_dma(pins1, chan));
                     *cx.resources.adc_pins2 = Some(pins2);
                     *cx.resources.buffer2 = Some(buf2);
                     *cx.resources.state = State::One;
                 } else {
-                    hprintln!("DMA1_CH1 IRQ: ERR: no transfer of type One").unwrap();
+                    hprintln!("DMA1_CH1 IRQ: ERR: no transfer of type One");
                 }
             }
         }

@@ -7,14 +7,13 @@ use rt::entry;
 use cortex_m_semihosting::hprintln;
 use hal::adc::Adc;
 use hal::prelude::*;
-use hal::stm32;
-use hal::stm32::ADC1;
-use hal::timer::Timer;
+use hal::pac;
+use hal::pac::ADC1;
 use nb::block;
 use panic_semihosting as _;
 use shared_bus::AdcProxy;
 use shared_bus::CortexMMutex;
-use stm32f1xx_hal as hal;
+use stm32f1xx_hal::{self as hal, rcc};
 
 /* */
 
@@ -76,27 +75,24 @@ impl<'a> M2<'a> {
 
 #[entry]
 fn main() -> ! {
-    let p = stm32::Peripherals::take().unwrap();
-
+    let p = pac::Peripherals::take().unwrap();
     let mut flash = p.FLASH.constrain();
-    let mut rcc = p.RCC.constrain();
-    let clocks = rcc
-        .cfgr
-        .sysclk(8.mhz())
-        .pclk1(8.mhz())
-        .adcclk(2.mhz())
-        .freeze(&mut flash.acr);
+    let mut rcc = p.RCC.freeze(
+        rcc::Config::hsi().sysclk(8.MHz()).pclk1(8.MHz()).adcclk(2.MHz()),
+        &mut flash.acr,
+    );
 
-    let mut gpioa = p.GPIOA.split(&mut rcc.apb2);
+    let mut gpioa = p.GPIOA.split(&mut rcc);
     let ch0 = gpioa.pa0.into_analog(&mut gpioa.crl);
     let ch1 = gpioa.pa1.into_analog(&mut gpioa.crl);
     let ch2 = gpioa.pa2.into_analog(&mut gpioa.crl);
     let ch3 = gpioa.pa3.into_analog(&mut gpioa.crl);
     let ch4 = gpioa.pa4.into_analog(&mut gpioa.crl);
 
-    let mut tmr = Timer::tim3(p.TIM3, &clocks, &mut rcc.apb1).start_count_down(1.hz());
+    let mut tmr = p.TIM3.counter_hz(&mut rcc);
+    tmr.start(1.Hz()).unwrap();
 
-    let adc = Adc::adc1(p.ADC1, &mut rcc.apb2, clocks);
+    let adc = Adc::new(p.ADC1, &mut rcc);
 
     let adc_bus: &'static _ = shared_bus::new_cortexm!(Adc<ADC1> = adc).unwrap();
 
@@ -109,12 +105,12 @@ fn main() -> ! {
     loop {
         let ch0 = a.get_ch0();
         let ch1 = a.get_ch1();
-        hprintln!("readings: {} {}", ch0, ch1).unwrap();
+        hprintln!("readings: {} {}", ch0, ch1);
 
         let ch2 = b.get_ch2();
         let ch3 = b.get_ch3();
         let ch4 = b.get_ch4();
-        hprintln!("readings: {} {} {}", ch2, ch3, ch4).unwrap();
+        hprintln!("readings: {} {} {}", ch2, ch3, ch4);
 
         block!(tmr.wait()).ok();
     }

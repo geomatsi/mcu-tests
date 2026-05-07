@@ -18,8 +18,8 @@ use hal::gpio::gpioa::{PA0, PA1, PA2, PA3};
 use hal::gpio::Analog;
 use hal::pac;
 use hal::prelude::*;
-use hal::stm32;
-use hal::stm32::interrupt;
+use hal::pac;
+use hal::pac::interrupt;
 use panic_semihosting as _;
 use stm32f1xx_hal as hal;
 
@@ -52,8 +52,8 @@ fn main() -> ! {
     let mut rcc = dp.RCC.constrain();
     let mut nvic = cp.NVIC;
 
-    let clocks = rcc.cfgr.adcclk(1.mhz()).freeze(&mut flash.acr);
-    //let clocks = rcc.cfgr.use_hse(8.mhz()).sysclk(32.mhz()).pclk1(16.mhz()).adcclk(8.mhz()).freeze(&mut flash.acr);
+    let clocks = rcc.cfgr.adcclk(1.MHz()).freeze(&mut flash.acr);
+    //let clocks = rcc.cfgr.use_hse(8.MHz()).sysclk(32.MHz()).pclk1(16.MHz()).adcclk(8.MHz()).freeze(&mut flash.acr);
 
     // delay
     let mut delay = Delay::new(cp.SYST, clocks);
@@ -93,7 +93,7 @@ fn main() -> ! {
     cm::peripheral::NVIC::unpend(stm32::Interrupt::DMA1_CHANNEL1);
 
     loop {
-        hprintln!("IDLE: wait 1 sec").unwrap();
+        hprintln!("IDLE: wait 1 sec");
         delay.delay_ms(1_000u16);
 
         cm::interrupt::free(|cs| {
@@ -101,11 +101,11 @@ fn main() -> ! {
                 G_DMA.borrow(cs).replace(None),
                 G_BUF.borrow(cs).replace(None),
             ) {
-                hprintln!("IDLE: start next xfer").unwrap();
+                hprintln!("IDLE: start next xfer");
                 let xfer = adc_dma.read(buf);
                 G_XFR.borrow(cs).replace(Some(xfer));
             } else {
-                hprintln!("IDLE: ERR: no rdma").unwrap();
+                hprintln!("IDLE: ERR: no rdma");
             }
         });
     }
@@ -116,11 +116,11 @@ fn DMA1_CHANNEL1() {
     cm::interrupt::free(|cs| {
         if let Some(xfer) = G_XFR.borrow(cs).replace(None) {
             let (buf, adc_dma) = xfer.wait();
-            hprintln!("DMA1_CH1 IRQ: {:?}", buf).unwrap();
+            hprintln!("DMA1_CH1 IRQ: {:?}", buf);
             G_DMA.borrow(cs).replace(Some(adc_dma));
             G_BUF.borrow(cs).replace(Some(buf));
         } else {
-            hprintln!("DMA1_CH1 IRQ: ERR: no xfer").unwrap();
+            hprintln!("DMA1_CH1 IRQ: ERR: no xfer");
         }
     });
 }

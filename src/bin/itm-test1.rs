@@ -3,31 +3,25 @@
 
 use cortex_m as cm;
 use cortex_m_rt::entry;
-use hal::delay::Delay;
-use hal::prelude::*;
 use hal::time::Hertz;
 use panic_itm as _;
 use stm32f1xx_hal as hal;
+use stm32f1xx_hal::{pac, prelude::*, rcc};
 
 use core::ptr;
 use itm_logger as itm;
 
 #[entry]
 fn main() -> ! {
-    let dp = hal::stm32::Peripherals::take().unwrap();
+    let dp = pac::Peripherals::take().unwrap();
     let mut cp = cm::Peripherals::take().unwrap();
     let mut flash = dp.FLASH.constrain();
-    let rcc = dp.RCC.constrain();
-
-    let clocks = rcc
-        .cfgr
-        .use_hse(8.mhz())
-        .sysclk(32.mhz())
-        .pclk1(16.mhz())
-        .freeze(&mut flash.acr);
-
-    let mut delay = Delay::new(cp.SYST, clocks);
-    let sysclk: Hertz = clocks.sysclk();
+    let rcc = dp.RCC.freeze(
+        rcc::Config::hse(8.MHz()).sysclk(32.MHz()).pclk1(16.MHz()),
+        &mut flash.acr,
+    );
+    let mut delay = cp.SYST.delay(&rcc.clocks);
+    let sysclk: Hertz = rcc.clocks.sysclk();
 
     cp.DCB.enable_trace();
     //cp.DCB.disable_trace();
@@ -65,7 +59,8 @@ fn main() -> ! {
     }
 
     itm::init_with_level(itm_logger::Level::Info).ok();
-    itm::update_tpiu_baudrate(sysclk.0, 2_000_000).expect("Failed to reset TPIU baudrate");
+    itm::update_tpiu_baudrate(sysclk.raw(), 2_000_000)
+        .expect("Failed to reset TPIU baudrate");
 
     loop {
         itm::debug!("ITM debug");

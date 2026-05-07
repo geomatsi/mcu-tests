@@ -14,7 +14,7 @@ use hal::dma::{Transfer, W};
 use hal::gpio::gpioa::{PA0, PA1, PA2, PA3};
 use hal::gpio::Analog;
 use hal::prelude::*;
-use hal::stm32;
+use hal::pac;
 use panic_semihosting as _;
 use rtic::app;
 use rtic::cyccnt::Instant;
@@ -39,7 +39,7 @@ impl SetChannels<AdcPins> for Adc<stm32::ADC1> {
         self.set_regular_sequence(&[0, 1, 2, 3]);
     }
 }
-#[app(device = stm32f1xx_hal::stm32, peripherals = true, monotonic = rtic::cyccnt::CYCCNT)]
+#[app(device = stm32f1xx_hal::pac, peripherals = true, monotonic = rtic::cyccnt::CYCCNT)]
 const APP: () = {
     struct Resources {
         // late resources
@@ -53,8 +53,8 @@ const APP: () = {
         let mut flash = cx.device.FLASH.constrain();
         let mut rcc = cx.device.RCC.constrain();
 
-        let clocks = rcc.cfgr.adcclk(1.mhz()).freeze(&mut flash.acr);
-        //let clocks = rcc.cfgr.use_hse(8.mhz()).sysclk(32.mhz()).pclk1(16.mhz()).adcclk(8.mhz()).freeze(&mut flash.acr);
+        let clocks = rcc.cfgr.adcclk(1.MHz()).freeze(&mut flash.acr);
+        //let clocks = rcc.cfgr.use_hse(8.MHz()).sysclk(32.MHz()).pclk1(16.MHz()).adcclk(8.MHz()).freeze(&mut flash.acr);
 
         // dma channel #1
         let mut dma_ch1 = cx.device.DMA1.split(&mut rcc.ahb).1;
@@ -102,11 +102,11 @@ const APP: () = {
     #[task(resources = [xfr, dma, buf])]
     fn start_adc_dma(cx: start_adc_dma::Context) {
         if let (Some(adc_dma), Some(buffer)) = (cx.resources.dma.take(), cx.resources.buf.take()) {
-            hprintln!("IDLE: start next xfer").unwrap();
+            hprintln!("IDLE: start next xfer");
             let transfer = adc_dma.read(buffer);
             *cx.resources.xfr = Some(transfer);
         } else {
-            hprintln!("IDLE: ERR: no rdma").unwrap();
+            hprintln!("IDLE: ERR: no rdma");
         }
     }
 
@@ -114,11 +114,11 @@ const APP: () = {
     fn dma1_channel1(cx: dma1_channel1::Context) {
         if let Some(xfr) = cx.resources.xfr.take() {
             let (buf, dma) = xfr.wait();
-            hprintln!("DMA1_CH1 IRQ: {:?}", buf).unwrap();
+            hprintln!("DMA1_CH1 IRQ: {:?}", buf);
             *cx.resources.dma = Some(dma);
             *cx.resources.buf = Some(buf);
         } else {
-            hprintln!("DMA1_CH1 IRQ: ERR: no xfer").unwrap();
+            hprintln!("DMA1_CH1 IRQ: ERR: no xfer");
         }
 
         cx.schedule

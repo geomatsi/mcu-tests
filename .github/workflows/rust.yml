@@ -9,6 +9,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      CARGO_TERM_COLOR: always
     strategy:
       matrix:
         features:
@@ -20,12 +22,9 @@ jobs:
           - tim3_remap_10
           - tim4_remap_00
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
-        target: thumbv7m-none-eabi
-        override: true
-    - name: Build Rust Embedded examples for BluePill
-      run: cargo build --bins --features ${{ matrix.features }} --release
-
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: thumbv7m-none-eabi
+      - name: Build Rust embedded examples for BluePill
+        run: cargo build --bins --features ${{ matrix.features }} --release

@@ -1,42 +1,31 @@
 #![no_main]
 #![no_std]
 
-use embedded_hal::digital::v2::OutputPin;
-
 use cortex_m_rt as rt;
 use cortex_m_semihosting::hprintln;
-use hal::prelude::*;
-use hal::timer::Timer;
 use nb::block;
 use panic_semihosting as _;
 use rt::entry;
-use stm32f1xx_hal as hal;
+use stm32f1xx_hal::{pac, prelude::*};
 
 #[entry]
 fn main() -> ! {
     let mut c: u8 = 0;
 
-    let dp = hal::stm32::Peripherals::take().unwrap();
+    let dp = pac::Peripherals::take().unwrap();
     let mut rcc = dp.RCC.constrain();
-    let mut gpioc = dp.GPIOC.split(&mut rcc.apb2);
+    let mut gpioc = dp.GPIOC.split(&mut rcc);
     let mut led = gpioc.pc13.into_push_pull_output(&mut gpioc.crh);
-
-    let mut flash = dp.FLASH.constrain();
-    let clocks = rcc
-        .cfgr
-        .sysclk(8.mhz())
-        .pclk1(8.mhz())
-        .freeze(&mut flash.acr);
-
-    let mut tmr = Timer::tim3(dp.TIM3, &clocks, &mut rcc.apb1).start_count_down(1.hz());
+    let mut tmr = dp.TIM3.counter_hz(&mut rcc);
+    tmr.start(1.Hz()).unwrap();
 
     loop {
         c += 1;
-        hprintln!("cycle {}", c).unwrap();
+        hprintln!("cycle {}", c);
 
-        led.set_high().unwrap();
+        let _ = led.set_high();
         block!(tmr.wait()).ok();
-        led.set_low().unwrap();
+        let _ = led.set_low();
         block!(tmr.wait()).ok();
     }
 }
