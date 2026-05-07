@@ -6,7 +6,6 @@ edition = "2024"
 rust-version = "1.85"
 
 [features]
-legacy_examples = []
 pwm = []
 
 # PWM features: tim/mapping selection
@@ -50,6 +49,10 @@ version = "0.7.7"
 version = "0.2.7"
 features = ["unproven"]
 
+[dependencies.embedded-hal-1]
+package = "embedded-hal"
+version = "1.0.0"
+
 [dependencies.stm32f1xx-hal]
 version = "0.11.0"
 features = ["stm32f103", "medium"]
@@ -69,32 +72,26 @@ required-features = ["pwm"]
 [[bin]]
 name = "adc-dma-test1"
 path = "src/bin/adc-dma-test1.rs"
-required-features = ["legacy_examples"]
 
 [[bin]]
 name = "adc-dma-test2"
 path = "src/bin/adc-dma-test2.rs"
-required-features = ["legacy_examples"]
 
 [[bin]]
 name = "adc-dma-test3"
 path = "src/bin/adc-dma-test3.rs"
-required-features = ["legacy_examples"]
 
 [[bin]]
 name = "adc-dma-test4"
 path = "src/bin/adc-dma-test4.rs"
-required-features = ["legacy_examples"]
 
 [[bin]]
 name = "adc-dma-test5"
 path = "src/bin/adc-dma-test5.rs"
-required-features = ["legacy_examples"]
 
 [[bin]]
 name = "adc-dma-test6"
 path = "src/bin/adc-dma-test6.rs"
-required-features = ["legacy_examples"]
 
 [[bin]]
 name = "blink-timer-rtfm"
@@ -103,12 +100,10 @@ path = "src/bin/blink-timer-rtfm.rs"
 [[bin]]
 name = "i2c-bitbang-test1"
 path = "src/bin/i2c-bitbang-test1.rs"
-required-features = ["legacy_examples"]
 
 [[bin]]
 name = "i2c-bitbang-test2"
 path = "src/bin/i2c-bitbang-test2.rs"
-required-features = ["legacy_examples"]
 
 [[bin]]
 name = "rc522-test2"

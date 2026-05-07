@@ -79,6 +79,7 @@ dependencies = [
  "cortex-m-semihosting",
  "eeprom24x",
  "embedded-hal 0.2.7",
+ "embedded-hal 1.0.0",
  "itm_logger",
  "lm75",
  "mfrc522",

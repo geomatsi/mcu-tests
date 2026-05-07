@@ -1,58 +1,41 @@
 #![no_main]
 #![no_std]
 
-use cm::singleton;
-use cortex_m as cm;
+use cortex_m::singleton;
 use cortex_m_rt::entry;
 use cortex_m_semihosting::hprintln;
-use hal::adc;
-use hal::gpio;
-use hal::pac;
-use hal::prelude::*;
 use panic_semihosting as _;
-use stm32f1xx_hal as hal;
-use stm32f1xx_hal::adc::Continuous;
+use stm32f1xx_hal::{
+    adc::{self, Continuous},
+    gpio,
+    pac,
+    prelude::*,
+    rcc,
+};
 
-static mut G_ADC: Option<adc::AdcDma<gpio::gpioa::PA0<gpio::Analog>, Continuous>> = None;
-static mut G_BUF: Option<&'static mut [u16; 8]> = None;
+type AdcDmaSingle = adc::AdcDma1<gpio::gpioa::PA0<gpio::Analog>, Continuous>;
 
 #[entry]
 fn main() -> ! {
     let dp = pac::Peripherals::take().unwrap();
     let mut flash = dp.FLASH.constrain();
-    let mut rcc = dp.RCC.constrain();
-    let clocks = rcc.cfgr.adcclk(2.MHz()).freeze(&mut flash.acr);
+    let mut rcc = dp
+        .RCC
+        .freeze(rcc::Config::hsi().adcclk(2.MHz()), &mut flash.acr);
 
-    // dma channel #1
-    let dma_ch1 = dp.DMA1.split(&mut rcc.ahb).1;
+    let dma_ch1 = dp.DMA1.split(&mut rcc).1;
+    let adc1 = adc::Adc::new(dp.ADC1, &mut rcc);
 
-    // setup ADC
-    let adc1 = adc::Adc::adc1(dp.ADC1, &mut rcc.apb2, clocks);
-
-    // setup GPIOA
-    let mut gpioa = dp.GPIOA.split(&mut rcc.apb2);
-
-    // Configure pa0 as an analog input
+    let mut gpioa = dp.GPIOA.split(&mut rcc);
     let adc_ch0 = gpioa.pa0.into_analog(&mut gpioa.crl);
 
-    let mut adc_dma = adc1.with_dma(adc_ch0, dma_ch1);
+    let mut adc_dma: AdcDmaSingle = adc1.with_dma(adc_ch0, dma_ch1);
     let mut buf = singleton!(: [u16; 8] = [0; 8]).unwrap();
 
-    unsafe {
-        G_ADC.replace(adc_dma);
-        G_BUF.replace(buf);
-    }
-
     loop {
-        adc_dma = unsafe { G_ADC.take().unwrap() };
-        buf = unsafe { G_BUF.take().unwrap() };
-
-        let (buf1, adc_dma1) = adc_dma.read(buf).wait();
-        hprintln!("{:#?} ", buf1);
-
-        unsafe {
-            G_ADC.replace(adc_dma1);
-            G_BUF.replace(buf1);
-        }
+        let (next_buf, next_adc_dma) = adc_dma.read(buf).wait();
+        let _ = hprintln!("{:?}", next_buf);
+        buf = next_buf;
+        adc_dma = next_adc_dma;
     }
 }
