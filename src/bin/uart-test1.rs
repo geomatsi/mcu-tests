@@ -23,9 +23,11 @@ fn main() -> ! {
     let tx = gpiob.pb10.into_alternate_push_pull(&mut gpiob.crh);
     let rx = gpiob.pb11;
 
-    let mut serial = dp
-        .USART3
-        .serial((tx, rx), Config::default().baudrate(115_200.bps()), &mut rcc);
+    let mut serial = dp.USART3.serial(
+        (tx, rx),
+        Config::default().baudrate(115_200.bps()),
+        &mut rcc,
+    );
 
     loop {
         hprintln!("Hello World!");

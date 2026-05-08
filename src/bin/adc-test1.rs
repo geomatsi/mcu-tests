@@ -2,7 +2,7 @@
 #![no_std]
 
 use cortex_m as cm;
-use cortex_m_rt::{entry, exception, ExceptionFrame};
+use cortex_m_rt::{ExceptionFrame, entry, exception};
 use cortex_m_semihosting::hprintln;
 use panic_semihosting as _;
 use stm32f1xx_hal::{pac, prelude::*, rcc};

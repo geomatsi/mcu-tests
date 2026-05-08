@@ -7,9 +7,9 @@ use cortex_m_semihosting::hprintln;
 use panic_semihosting as _;
 use rt::entry;
 use stm32f1xx_hal::{
-    gpio::{gpioc::PC13, Output, PushPull},
+    gpio::{Output, PushPull, gpioc::PC13},
     pac,
-    pac::{interrupt, Interrupt, TIM3},
+    pac::{Interrupt, TIM3, interrupt},
     prelude::*,
     timer::{CounterMs, Event},
 };

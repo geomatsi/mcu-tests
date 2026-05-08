@@ -1,6 +1,10 @@
 use bitbang_hal::i2c;
-use embedded_hal::blocking::i2c::{Read as Eh02Read, Write as Eh02Write, WriteRead as Eh02WriteRead};
-use embedded_hal_1::i2c::{Error as Eh1Error, ErrorKind, ErrorType, I2c, NoAcknowledgeSource, Operation};
+use embedded_hal::blocking::i2c::{
+    Read as Eh02Read, Write as Eh02Write, WriteRead as Eh02WriteRead,
+};
+use embedded_hal_1::i2c::{
+    Error as Eh1Error, ErrorKind, ErrorType, I2c, NoAcknowledgeSource, Operation,
+};
 
 #[derive(Debug)]
 pub enum BitBangI2cError<E> {
@@ -57,7 +61,11 @@ where
         + Eh02WriteRead<Error = i2c::Error<E>>,
     E: core::fmt::Debug,
 {
-    fn transaction(&mut self, address: u8, operations: &mut [Operation<'_>]) -> Result<(), Self::Error> {
+    fn transaction(
+        &mut self,
+        address: u8,
+        operations: &mut [Operation<'_>],
+    ) -> Result<(), Self::Error> {
         match operations {
             [] => Ok(()),
             [Operation::Read(read)] => self.inner.read(address, read).map_err(Into::into),

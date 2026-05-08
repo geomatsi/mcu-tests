@@ -11,8 +11,8 @@ mod app {
     use stm32f1xx_hal::{
         adc::Adc,
         gpio::{
-            gpioa::{PA0, PA1},
             Analog,
+            gpioa::{PA0, PA1},
         },
         pac::{self, ADC1},
         prelude::*,
@@ -79,7 +79,7 @@ mod app {
     #[idle]
     fn idle(_cx: idle::Context) -> ! {
         loop {
-            cortex_m::asm::wfi();
+            cortex_m::asm::nop();
         }
     }
 

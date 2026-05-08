@@ -6,9 +6,9 @@ use rt::entry;
 
 use cortex_m_semihosting::hprintln;
 use hal::adc::Adc;
-use hal::prelude::*;
 use hal::pac;
 use hal::pac::ADC1;
+use hal::prelude::*;
 use nb::block;
 use panic_semihosting as _;
 use shared_bus::AdcProxy;
@@ -78,7 +78,10 @@ fn main() -> ! {
     let p = pac::Peripherals::take().unwrap();
     let mut flash = p.FLASH.constrain();
     let mut rcc = p.RCC.freeze(
-        rcc::Config::hsi().sysclk(8.MHz()).pclk1(8.MHz()).adcclk(2.MHz()),
+        rcc::Config::hsi()
+            .sysclk(8.MHz())
+            .pclk1(8.MHz())
+            .adcclk(2.MHz()),
         &mut flash.acr,
     );
 

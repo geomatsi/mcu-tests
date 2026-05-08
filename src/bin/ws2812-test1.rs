@@ -5,7 +5,7 @@ use cortex_m as cm;
 use cortex_m_rt::entry;
 use panic_rtt_target as _;
 use rtt_target::{rprintln, rtt_init_print};
-use smart_leds::{SmartLedsWrite, RGB8};
+use smart_leds::{RGB8, SmartLedsWrite};
 use stm32f1xx_hal::{
     pac,
     prelude::*,

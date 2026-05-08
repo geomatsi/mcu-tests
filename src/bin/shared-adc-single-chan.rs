@@ -39,7 +39,9 @@ where
 fn main() -> ! {
     let p = pac::Peripherals::take().unwrap();
     let mut flash = p.FLASH.constrain();
-    let mut rcc = p.RCC.freeze(rcc::Config::hsi().adcclk(2.MHz()), &mut flash.acr);
+    let mut rcc = p
+        .RCC
+        .freeze(rcc::Config::hsi().adcclk(2.MHz()), &mut flash.acr);
 
     // gpio input channels
     let mut gpioa = p.GPIOA.split(&mut rcc);

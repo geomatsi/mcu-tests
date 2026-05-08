@@ -59,8 +59,7 @@ fn main() -> ! {
     }
 
     itm::init_with_level(itm_logger::Level::Info).ok();
-    itm::update_tpiu_baudrate(sysclk.raw(), 2_000_000)
-        .expect("Failed to reset TPIU baudrate");
+    itm::update_tpiu_baudrate(sysclk.raw(), 2_000_000).expect("Failed to reset TPIU baudrate");
 
     loop {
         itm::debug!("ITM debug");

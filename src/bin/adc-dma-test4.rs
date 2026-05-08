@@ -12,8 +12,8 @@ use stm32f1xx_hal::{
     adc::{self, Adc, Scan, SetChannels},
     dma::{self, Transfer, W},
     gpio::{
-        gpioa::{PA0, PA1, PA2, PA3},
         Analog,
+        gpioa::{PA0, PA1, PA2, PA3},
     },
     pac::{self, interrupt},
     prelude::*,

@@ -6,9 +6,10 @@ use panic_rtt_target as _;
 
 #[rtic::app(device = stm32f1xx_hal::pac)]
 mod app {
-    use rtt_target::{rprintln, rtt_init_print};
+    use core::fmt::Write;
+    use rtt_target::{UpChannel, rtt_init};
     use stm32f1xx_hal::{
-        gpio::{gpioc::PC13, Output, PinState, PushPull},
+        gpio::{Output, PushPull, gpioc::PC13},
         pac,
         prelude::*,
         timer::{CounterMs, Event},
@@ -19,7 +20,8 @@ mod app {
 
     #[local]
     struct Local {
-        beat: u8,
+        stream1: UpChannel,
+        stream2: UpChannel,
         led: PC13<Output<PushPull>>,
         tim2: CounterMs<pac::TIM2>,
         tim3: CounterMs<pac::TIM3>,
@@ -27,13 +29,31 @@ mod app {
 
     #[init]
     fn init(cx: init::Context) -> (Shared, Local) {
-        rtt_init_print!();
+        let channels = rtt_init! {
+            up: {
+                0: {
+                    size: 512,
+                    name: "stream1"
+                }
+                1: {
+                    size: 512,
+                    name: "stream2"
+                }
+            }
+        };
 
-        let mut rcc = cx.device.RCC.constrain();
+        let stream1 = channels.up.0;
+        let stream2 = channels.up.1;
+
+        let mut flash = cx.device.FLASH.constrain();
+        let mut rcc = cx.device.RCC.freeze(
+            stm32f1xx_hal::rcc::Config::hse(8.MHz())
+                .sysclk(8.MHz())
+                .pclk1(8.MHz()),
+            &mut flash.acr,
+        );
         let mut gpioc = cx.device.GPIOC.split(&mut rcc);
-        let led = gpioc
-            .pc13
-            .into_push_pull_output_with_state(&mut gpioc.crh, PinState::High);
+        let led = gpioc.pc13.into_push_pull_output(&mut gpioc.crh);
 
         let mut tim2 = cx.device.TIM2.counter_ms(&mut rcc);
         tim2.start(1.secs()).unwrap();
@@ -46,7 +66,8 @@ mod app {
         (
             Shared {},
             Local {
-                beat: 0,
+                stream1,
+                stream2,
                 led,
                 tim2,
                 tim3,
@@ -57,25 +78,22 @@ mod app {
     #[idle]
     fn idle(_cx: idle::Context) -> ! {
         loop {
-            cortex_m::asm::wfi();
+            // Keep the core awake so host-side RTT attach does not time out.
+            cortex_m::asm::nop();
         }
     }
 
-    #[task(binds = TIM2, priority = 1, local = [beat, tim2])]
+    #[task(binds = TIM2, priority = 1, local = [beat: u8 = 0, tim2, stream1])]
     fn tim2(cx: tim2::Context) {
-        rprintln!("TIM2 beat = {}", *cx.local.beat);
+        writeln!(cx.local.stream1, "TIM2 beat = {}", *cx.local.beat).ok();
         *cx.local.beat = cx.local.beat.wrapping_add(1);
         cx.local.tim2.clear_interrupt(Event::Update);
     }
 
-    #[task(binds = TIM3, priority = 1, local = [led, tim3])]
+    #[task(binds = TIM3, priority = 1, local = [led, tim3, stream2])]
     fn tim3(cx: tim3::Context) {
-        rprintln!("TIM3 blink");
-        if cx.local.led.is_set_low() {
-            cx.local.led.set_high();
-        } else {
-            cx.local.led.set_low();
-        }
+        writeln!(cx.local.stream2, "TIM3 blink").ok();
+        cx.local.led.toggle();
         cx.local.tim3.clear_interrupt(Event::Update);
     }
 }

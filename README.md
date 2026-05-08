@@ -36,6 +36,15 @@ set. The default path is:
 $ cargo check --bins
 ```
 
+`pwm-test2` is feature-gated; select one PWM timer/remap feature such as
+`tim2_remap_00`, `tim2_remap_01`, `tim2_remap_10`, `tim2_remap_11`,
+`tim3_remap_00`, `tim3_remap_10`, or `tim4_remap_00`, then build or run with
+that feature, for example:
+
+```bash
+$ cargo check --bin pwm-test2 --features tim3_remap_00
+```
+
 # Optional cargo-make / OpenOCD helpers
 
 The existing `cargo make` tasks and `tools/openocd.cfg` helpers are still here

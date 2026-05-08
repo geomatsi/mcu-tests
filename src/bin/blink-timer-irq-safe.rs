@@ -5,10 +5,11 @@ use core::cell::RefCell;
 
 use cortex_m::{asm::wfi, interrupt::Mutex};
 use cortex_m_rt::entry;
+use cortex_m_semihosting::hprintln;
 use panic_semihosting as _;
 use stm32f1xx_hal::{
-    gpio::{gpioc::PC13, Output, PushPull},
-    pac::{interrupt, Interrupt, Peripherals, TIM2},
+    gpio::{Output, PushPull, gpioc::PC13},
+    pac::{Interrupt, Peripherals, TIM2, interrupt},
     prelude::*,
     timer::{CounterMs, Event},
 };
@@ -48,6 +49,8 @@ fn main() -> ! {
 fn TIM2() {
     static mut LED: Option<LedT> = None;
     static mut TIM: Option<CounterMs<TIM2>> = None;
+
+    hprintln!("TIM2 IRQ");
 
     let led = LED.get_or_insert_with(|| {
         cortex_m::interrupt::free(|cs| G_LED.borrow(cs).replace(None).unwrap())

@@ -13,8 +13,8 @@ mod app {
         adc::{self, Adc, Scan, SetChannels},
         dma::{self, Transfer, W},
         gpio::{
-            gpioa::{PA0, PA1, PA2, PA3, PA4},
             Analog,
+            gpioa::{PA0, PA1, PA2, PA3, PA4},
         },
         pac,
         prelude::*,
@@ -78,7 +78,10 @@ mod app {
     #[init]
     fn init(cx: init::Context) -> (Shared, Local) {
         let mut flash = cx.device.FLASH.constrain();
-        let mut rcc = cx.device.RCC.freeze(rcc::Config::hsi().adcclk(1.MHz()), &mut flash.acr);
+        let mut rcc = cx
+            .device
+            .RCC
+            .freeze(rcc::Config::hsi().adcclk(1.MHz()), &mut flash.acr);
 
         let mut dma_ch1 = cx.device.DMA1.split(&mut rcc).1;
         dma_ch1.listen(dma::Event::TransferComplete);
@@ -152,29 +155,33 @@ mod app {
             &mut buffer2,
             &mut tim2,
         )
-            .lock(|state, transfer1, adc_dma1, buffer1, transfer2, adc_dma2, buffer2, tim2| {
-                tim2.clear_interrupt(Event::Update);
-                tim2.unlisten(Event::Update);
+            .lock(
+                |state, transfer1, adc_dma1, buffer1, transfer2, adc_dma2, buffer2, tim2| {
+                    tim2.clear_interrupt(Event::Update);
+                    tim2.unlisten(Event::Update);
 
-                match state {
-                    State::One => {
-                        if let (Some(adc_dma), Some(buffer)) = (adc_dma1.take(), buffer1.take()) {
-                            hprintln!("TASK: start next xfer");
-                            *transfer1 = Some(adc_dma.read(buffer));
-                        } else {
-                            hprintln!("TASK: ERR: no ADC/DMA type One");
+                    match state {
+                        State::One => {
+                            if let (Some(adc_dma), Some(buffer)) = (adc_dma1.take(), buffer1.take())
+                            {
+                                hprintln!("TASK: start next xfer");
+                                *transfer1 = Some(adc_dma.read(buffer));
+                            } else {
+                                hprintln!("TASK: ERR: no ADC/DMA type One");
+                            }
+                        }
+                        State::Two => {
+                            if let (Some(adc_dma), Some(buffer)) = (adc_dma2.take(), buffer2.take())
+                            {
+                                hprintln!("TASK: start next xfer");
+                                *transfer2 = Some(adc_dma.read(buffer));
+                            } else {
+                                hprintln!("TASK: ERR: no ADC/DMA type Two");
+                            }
                         }
                     }
-                    State::Two => {
-                        if let (Some(adc_dma), Some(buffer)) = (adc_dma2.take(), buffer2.take()) {
-                            hprintln!("TASK: start next xfer");
-                            *transfer2 = Some(adc_dma.read(buffer));
-                        } else {
-                            hprintln!("TASK: ERR: no ADC/DMA type Two");
-                        }
-                    }
-                }
-            });
+                },
+            );
     }
 
     #[task(
@@ -230,7 +237,9 @@ mod app {
                  tim2| {
                     match state {
                         State::One => {
-                            if let (Some(transfer), Some(pins2)) = (transfer1.take(), adc_pins2.take()) {
+                            if let (Some(transfer), Some(pins2)) =
+                                (transfer1.take(), adc_pins2.take())
+                            {
                                 let (buf1, adc_dma) = transfer.wait();
                                 let (adc, pins1, chan) = adc_dma.split();
 
@@ -245,7 +254,9 @@ mod app {
                             }
                         }
                         State::Two => {
-                            if let (Some(transfer), Some(pins1)) = (transfer2.take(), adc_pins1.take()) {
+                            if let (Some(transfer), Some(pins1)) =
+                                (transfer2.take(), adc_pins1.take())
+                            {
                                 let (buf2, adc_dma) = transfer.wait();
                                 let (adc, pins2, chan) = adc_dma.split();
 

@@ -13,8 +13,8 @@ mod app {
         adc::{self, Adc, Scan, SetChannels},
         dma::{self, Transfer, W},
         gpio::{
-            gpioa::{PA0, PA1, PA2, PA3},
             Analog,
+            gpioa::{PA0, PA1, PA2, PA3},
         },
         pac,
         prelude::*,
@@ -54,7 +54,10 @@ mod app {
     #[init]
     fn init(cx: init::Context) -> (Shared, Local) {
         let mut flash = cx.device.FLASH.constrain();
-        let mut rcc = cx.device.RCC.freeze(rcc::Config::hsi().adcclk(1.MHz()), &mut flash.acr);
+        let mut rcc = cx
+            .device
+            .RCC
+            .freeze(rcc::Config::hsi().adcclk(1.MHz()), &mut flash.acr);
 
         let mut dma_ch1 = cx.device.DMA1.split(&mut rcc).1;
         dma_ch1.listen(dma::Event::TransferComplete);

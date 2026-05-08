@@ -7,8 +7,7 @@ use cortex_m_semihosting::hprintln;
 use panic_semihosting as _;
 use stm32f1xx_hal::{
     adc::{self, Continuous},
-    gpio,
-    pac,
+    gpio, pac,
     prelude::*,
     rcc,
 };

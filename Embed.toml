@@ -8,7 +8,6 @@ protocol = "Swd"
 
 [default.flashing]
 enabled = false
-halt_afterwards = false
 restore_unwritten_bytes = false
 
 [default.reset]
@@ -22,9 +21,11 @@ connect_under_reset = false
 
 [default.rtt]
 enabled = true
-channels = []
+up_channels = [
+    { channel = 0, format = "String", show_timestamps = true },
+    { channel = 1, format = "String", show_timestamps = true },
+]
 timeout = 3000
-show_timestamps = true
 log_enabled = false
 
 [default.gdb]
@@ -41,5 +42,4 @@ enabled = false
 
 [flash.flashing]
 enabled = true
-halt_afterwards = false
 restore_unwritten_bytes = false

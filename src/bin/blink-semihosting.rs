@@ -11,6 +11,7 @@ use stm32f1xx_hal::{pac, prelude::*, rcc};
 #[entry]
 fn main() -> ! {
     let dp = pac::Peripherals::take().unwrap();
+    let cp = cm::Peripherals::take().unwrap();
     let mut flash = dp.FLASH.constrain();
     let mut rcc = dp.RCC.freeze(
         rcc::Config::hse(8.MHz())
@@ -21,19 +22,14 @@ fn main() -> ! {
     );
     let mut gpioc = dp.GPIOC.split(&mut rcc);
     let mut led = gpioc.pc13.into_push_pull_output(&mut gpioc.crh);
+    let mut delay = cp.SYST.delay(&rcc.clocks);
 
     loop {
         hprintln!("Hello World!");
 
         let _ = led.set_high();
-        delay(5000);
+        delay.delay_ms(1_000u16);
         let _ = led.set_low();
-        delay(500);
-    }
-}
-
-fn delay(count: u32) {
-    for _ in 0..count {
-        cm::asm::nop();
+        delay.delay_ms(500u16);
     }
 }
