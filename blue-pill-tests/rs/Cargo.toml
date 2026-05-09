@@ -1,0 +1,120 @@
+[package]
+name = "blue-pill-tests"
+version = "0.1.0"
+authors = ["Sergey Matyukevich <geomatsi@gmail.com>"]
+edition = "2024"
+rust-version = "1.85"
+
+[features]
+pwm = []
+
+# PWM features: tim/mapping selection
+tim2_remap_00 = ["pwm"]
+tim2_remap_01 = ["pwm"]
+tim2_remap_10 = ["pwm"]
+tim2_remap_11 = ["pwm"]
+
+tim3_remap_00 = ["pwm"]
+tim3_remap_10 = ["pwm"]
+
+tim4_remap_00 = ["pwm"]
+
+[dependencies]
+cortex-m-rt = "0.7.5"
+panic-semihosting = "0.6.0"
+cortex-m-semihosting = "0.5.0"
+panic-itm = "0.4.2"
+nb = "1.1"
+eeprom24x = "0.7.2"
+lm75 = "1.0.0"
+itm_logger = "0.1"
+mfrc522 = { version = "0.8.0", features = ["eh02"] }
+smart-leds = "0.4.0"
+ws2812-spi = "0.5.1"
+
+[dependencies.rtt-target]
+version = "0.6.2"
+
+[dependencies.panic-rtt-target]
+version = "0.2.0"
+
+[dependencies.rtic]
+version = "2.2.0"
+features = ["thumbv7-backend"]
+
+[dependencies.cortex-m]
+version = "0.7.7"
+
+[dependencies.embedded-hal]
+version = "0.2.7"
+features = ["unproven"]
+
+[dependencies.embedded-hal-1]
+package = "embedded-hal"
+version = "1.0.0"
+
+[dependencies.stm32f1xx-hal]
+version = "0.11.0"
+features = ["stm32f103", "medium"]
+
+[dependencies.bitbang-hal]
+version = "0.3.3"
+
+[dependencies.shared-bus]
+version = "0.3.1"
+features = ["cortex-m"]
+
+[profile.dev]
+opt-level = "s"
+codegen-units = 1
+debug = 1
+lto = "thin"
+
+[[bin]]
+name = "pwm-test2"
+path = "src/bin/pwm-test2.rs"
+required-features = ["pwm"]
+
+[[bin]]
+name = "adc-dma-test1"
+path = "src/bin/adc-dma-test1.rs"
+
+[[bin]]
+name = "adc-dma-test2"
+path = "src/bin/adc-dma-test2.rs"
+
+[[bin]]
+name = "adc-dma-test3"
+path = "src/bin/adc-dma-test3.rs"
+
+[[bin]]
+name = "adc-dma-test4"
+path = "src/bin/adc-dma-test4.rs"
+
+[[bin]]
+name = "adc-dma-test5"
+path = "src/bin/adc-dma-test5.rs"
+
+[[bin]]
+name = "adc-dma-test6"
+path = "src/bin/adc-dma-test6.rs"
+
+[[bin]]
+name = "blink-timer-rtfm"
+path = "src/bin/blink-timer-rtfm.rs"
+
+[[bin]]
+name = "i2c-bitbang-test1"
+path = "src/bin/i2c-bitbang-test1.rs"
+
+[[bin]]
+name = "i2c-bitbang-test2"
+path = "src/bin/i2c-bitbang-test2.rs"
+
+[[bin]]
+name = "rc522-test2"
+path = "src/bin/rc522-test2.rs"
+
+[[bin]]
+name = "shared-adc-rtic"
+path = "src/bin/shared-adc-rtic.rs"
