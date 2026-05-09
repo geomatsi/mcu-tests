@@ -1,0 +1,111 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.9~svn20110310	//
+AHBPrescTable	src/system_stm32f4xx.c	/^__I uint8_t AHBPrescTable[16] = {0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 6, 7, 8, 9};$/;"	v
+CC	Makefile	/^CC = $(CROSS_COMPILE)gcc$/;"	m
+CFLAGS	Makefile	/^CFLAGS = -g -Wall -O2$/;"	m
+CROSS_COMPILE	Makefile	/^CROSS_COMPILE ?= \/home\/matsi\/devel\/tools\/Sourcery_CodeBench_Lite_for_ARM_GNU_Linux-2013.05-24\/bin\/arm-none-linux-gnueabi-$/;"	m
+CopyDataInit	src/startup_stm32f4xx.s	/^CopyDataInit:$/;"	l
+DEMO_OBJS	Makefile	/^DEMO_OBJS := $(DEMO_OBJS:.s=.o)$/;"	m
+DEMO_OBJS	Makefile	/^DEMO_OBJS := $(DEMO_SRCS:.c=.o)$/;"	m
+DEMO_OBJS	Makefile	/^DEMO_OBJS := $(addprefix $(OBJ_DIR)\/,$(DEMO_OBJS))$/;"	m
+Default_Handler	src/startup_stm32f4xx.s	/^Default_Handler:$/;"	l
+EXTI0_IRQHandler	src/isr.c	/^void EXTI0_IRQHandler(void)$/;"	f
+FREERTOS_CONFIG_H	include/FreeRTOSConfig.h	71;"	d
+FREERTOS_DIR	Makefile	/^FREERTOS_DIR ?= \/home\/matsi\/code\/FreeRTOSV7.3.0\/FreeRTOS$/;"	m
+FillZerobss	src/startup_stm32f4xx.s	/^FillZerobss:$/;"	l
+HSE_VALUE	include/stm32f4xx_conf.h	28;"	d
+HSE_VALUE	include/stm32f4xx_conf.h	29;"	d
+INCLUDE_uxTaskPriorityGet	include/FreeRTOSConfig.h	124;"	d
+INCLUDE_vTaskCleanUpResources	include/FreeRTOSConfig.h	126;"	d
+INCLUDE_vTaskDelay	include/FreeRTOSConfig.h	129;"	d
+INCLUDE_vTaskDelayUntil	include/FreeRTOSConfig.h	128;"	d
+INCLUDE_vTaskDelete	include/FreeRTOSConfig.h	125;"	d
+INCLUDE_vTaskPrioritySet	include/FreeRTOSConfig.h	123;"	d
+INCLUDE_vTaskSuspend	include/FreeRTOSConfig.h	127;"	d
+INC_DIR	Makefile	/^INC_DIR = include$/;"	m
+Infinite_Loop	src/startup_stm32f4xx.s	/^Infinite_Loop:$/;"	l
+LD	Makefile	/^LD = $(CROSS_COMPILE)ld$/;"	m
+LDFLAGS	Makefile	/^LDFLAGS = -Tstm32f4-flash.ld$/;"	m
+LIBGCC	Makefile	/^LIBGCC  = $(shell $(CC) -mthumb -mcpu=cortex-m4 -print-libgcc-file-name)$/;"	m
+LedFlash	src/main.c	/^static void LedFlash(void *Parameters)$/;"	f	file:
+LoopCopyDataInit	src/startup_stm32f4xx.s	/^LoopCopyDataInit:$/;"	l
+LoopFillZerobss	src/startup_stm32f4xx.s	/^LoopFillZerobss:$/;"	l
+OBJCOPY	Makefile	/^OBJCOPY = $(CROSS_COMPILE)objcopy$/;"	m
+OBJ_DIR	Makefile	/^OBJ_DIR = build$/;"	m
+PLL_M	src/system_stm32f4xx.c	112;"	d	file:
+PLL_N	src/system_stm32f4xx.c	113;"	d	file:
+PLL_P	src/system_stm32f4xx.c	116;"	d	file:
+PLL_Q	src/system_stm32f4xx.c	119;"	d	file:
+Reset_Handler	src/startup_stm32f4xx.s	/^Reset_Handler:$/;"	l
+SRC_DIR	Makefile	/^SRC_DIR = src$/;"	m
+STM_DIR	Makefile	/^STM_DIR ?= \/home\/matsi\/src\/stm32\/STM32F4-Discovery_FW_V1.1.0\/Libraries$/;"	m
+SetSysClock	src/system_stm32f4xx.c	/^static void SetSysClock(void)$/;"	f	file:
+SystemCoreClock	src/system_stm32f4xx.c	/^uint32_t SystemCoreClock = 168000000;$/;"	v
+SystemCoreClockUpdate	src/system_stm32f4xx.c	/^void SystemCoreClockUpdate(void)$/;"	f
+SystemInit	src/system_stm32f4xx.c	/^void SystemInit(void)$/;"	f
+TARGET	Makefile	/^TARGET=freertos-demo$/;"	m
+VECT_TAB_OFFSET	src/system_stm32f4xx.c	107;"	d	file:
+__STM32F4xx_CONF_H	include/stm32f4xx_conf.h	24;"	d
+__aeabi_unwind_cpp_pr0	src/stubs.c	/^void __aeabi_unwind_cpp_pr0(void)$/;"	f
+__aeabi_unwind_cpp_pr1	src/stubs.c	/^void __aeabi_unwind_cpp_pr1(void)$/;"	f
+__libc_init_array	src/stubs.c	/^void __libc_init_array(void)$/;"	f
+assert_param	include/stm32f4xx_conf.h	85;"	d
+assert_param	include/stm32f4xx_conf.h	89;"	d
+blink	src/misc.c	/^void blink(volatile int count, GPIO_TypeDef* GPIOx, uint16_t pin)$/;"	f
+configASSERT	include/FreeRTOSConfig.h	158;"	d
+configCHECK_FOR_STACK_OVERFLOW	include/FreeRTOSConfig.h	104;"	d
+configCPU_CLOCK_HZ	include/FreeRTOSConfig.h	92;"	d
+configGENERATE_RUN_TIME_STATS	include/FreeRTOSConfig.h	109;"	d
+configIDLE_SHOULD_YIELD	include/FreeRTOSConfig.h	100;"	d
+configKERNEL_INTERRUPT_PRIORITY	include/FreeRTOSConfig.h	151;"	d
+configLIBRARY_LOWEST_INTERRUPT_PRIORITY	include/FreeRTOSConfig.h	141;"	d
+configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY	include/FreeRTOSConfig.h	147;"	d
+configMAX_CO_ROUTINE_PRIORITIES	include/FreeRTOSConfig.h	113;"	d
+configMAX_PRIORITIES	include/FreeRTOSConfig.h	94;"	d
+configMAX_SYSCALL_INTERRUPT_PRIORITY	include/FreeRTOSConfig.h	154;"	d
+configMAX_TASK_NAME_LEN	include/FreeRTOSConfig.h	97;"	d
+configMINIMAL_STACK_SIZE	include/FreeRTOSConfig.h	95;"	d
+configPRIO_BITS	include/FreeRTOSConfig.h	134;"	d
+configPRIO_BITS	include/FreeRTOSConfig.h	136;"	d
+configQUEUE_REGISTRY_SIZE	include/FreeRTOSConfig.h	103;"	d
+configTICK_RATE_HZ	include/FreeRTOSConfig.h	93;"	d
+configTIMER_QUEUE_LENGTH	include/FreeRTOSConfig.h	118;"	d
+configTIMER_TASK_PRIORITY	include/FreeRTOSConfig.h	117;"	d
+configTIMER_TASK_STACK_DEPTH	include/FreeRTOSConfig.h	119;"	d
+configTOTAL_HEAP_SIZE	include/FreeRTOSConfig.h	96;"	d
+configUSE_16_BIT_TICKS	include/FreeRTOSConfig.h	99;"	d
+configUSE_APPLICATION_TASK_TAG	include/FreeRTOSConfig.h	107;"	d
+configUSE_COUNTING_SEMAPHORES	include/FreeRTOSConfig.h	108;"	d
+configUSE_CO_ROUTINES	include/FreeRTOSConfig.h	112;"	d
+configUSE_IDLE_HOOK	include/FreeRTOSConfig.h	90;"	d
+configUSE_MALLOC_FAILED_HOOK	include/FreeRTOSConfig.h	106;"	d
+configUSE_MUTEXES	include/FreeRTOSConfig.h	102;"	d
+configUSE_PREEMPTION	include/FreeRTOSConfig.h	89;"	d
+configUSE_RECURSIVE_MUTEXES	include/FreeRTOSConfig.h	105;"	d
+configUSE_TICK_HOOK	include/FreeRTOSConfig.h	91;"	d
+configUSE_TIMERS	include/FreeRTOSConfig.h	116;"	d
+configUSE_TRACE_FACILITY	include/FreeRTOSConfig.h	98;"	d
+critical_error_blink	src/misc.c	/^void critical_error_blink(void)$/;"	f
+delay	src/misc.c	/^void delay(volatile uint32_t count)$/;"	f
+exti_init	src/main.c	/^EXTI_InitTypeDef exti_init;$/;"	v
+g_pfnVectors	src/startup_stm32f4xx.s	/^g_pfnVectors:$/;"	l
+gpio_init	src/main.c	/^GPIO_InitTypeDef gpio_init;$/;"	v
+hw_init	src/main.c	/^static void hw_init(void)$/;"	f	file:
+main	src/main.c	/^int main()$/;"	f
+memcpy	src/stdlib.c	/^void * memcpy(void *dest, const void *src, size_t n)$/;"	f
+memset	src/stdlib.c	/^void * memset(void *s, int c, size_t n)$/;"	f
+nvic_init	src/main.c	/^NVIC_InitTypeDef nvic_init;$/;"	v
+size_t	src/stdlib.c	3;"	d	file:
+strcat	src/stdlib.c	/^char * strcat(char *dest, const char *src)$/;"	f
+strlen	src/stdlib.c	/^size_t strlen(const char *s)$/;"	f
+strncat	src/stdlib.c	/^char * strncat(char *dest, const char *src, size_t n)$/;"	f
+strncpy	src/stdlib.c	/^char * strncpy(char *dest, const char *src, size_t n)$/;"	f
+u16_t	src/stdlib.c	/^typedef uint16_t u16_t;$/;"	t	file:
+u8_t	src/stdlib.c	/^typedef uint8_t u8_t;$/;"	t	file:
+vPortSVCHandler	include/FreeRTOSConfig.h	162;"	d
+xPortPendSVHandler	include/FreeRTOSConfig.h	163;"	d
+xPortSysTickHandler	include/FreeRTOSConfig.h	164;"	d

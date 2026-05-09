@@ -1,0 +1,15 @@
+HOWTO
+
+== Write firmware to flash using st-tools
+
+  shell# st-flash erase
+  shell# st-flash write build/leds.bin 0x8000000
+
+== Write firmware to flash using gdb
+
+  shell_1# st-utils
+
+  shell_2# arm-none-linux-gnueabi-gdb build/leds.elf
+  gdb> tar ext :4242
+  gdb> load
+  gdb> run
