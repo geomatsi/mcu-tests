@@ -1,0 +1,15 @@
+{
+    "Lua.diagnostics.globals": [
+        "mqtt",
+        "tmr",
+        "wifi",
+        "gpio",
+        "bit",
+        "node",
+        "file",
+        "websocket",
+        "pwm",
+        "adc",
+        "i2c"
+    ]
+}
