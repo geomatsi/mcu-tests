@@ -1,0 +1,4 @@
+FLASH commands
+
+../../tools/lpcflash/src/lpcflash -i /dev/ttyUSB0 -b 9600 -e 0:25 -vv
+../../tools/lpcflash/src/lpcflash -i /dev/ttyUSB0 -b 9600 -l ./uip_test.bin -p 0 -v
