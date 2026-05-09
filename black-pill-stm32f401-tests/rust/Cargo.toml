@@ -1,0 +1,30 @@
+[package]
+name = "black-pill-stm32f401-tests"
+version = "0.1.0"
+authors = ["Sergey Matyukevich <geomatsi@gmail.com>"]
+edition = "2024"
+rust-version = "1.85"
+
+[features]
+# PWM features: tim/mapping selection
+tim2_remap_00 = []
+tim2_remap_01 = []
+tim2_remap_10 = []
+tim2_remap_11 = []
+
+tim3_remap_00 = []
+tim3_remap_10 = []
+
+tim4_remap_00 = []
+
+[dependencies]
+cortex-m = "0.7.7"
+cortex-m-rt = "0.7.5"
+cortex-m-semihosting = "0.5.0"
+panic-semihosting = "0.6.0"
+hd44780-driver = "0.4.0"
+nb = "1.1"
+
+[dependencies.stm32f4xx-hal]
+version = "0.23.0"
+features = ["stm32f401"]
