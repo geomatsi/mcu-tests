@@ -1,0 +1,35 @@
+[tasks.flash_debug]
+script = [
+'''
+cargo build --bin $1 && \
+cargo objcopy ---bin $1 -- -O binary target/${CARGO_MAKE_CRATE_TARGET_TRIPLE}/debug/$1.bin
+openocd -f ../support/openocd-ftdi232h.cfg -c "batch_flash_img target/${CARGO_MAKE_CRATE_TARGET_TRIPLE}/debug/$1.bin"
+'''
+]
+
+[tasks.flash_release]
+script = [
+'''
+cargo build --bin $1 --release && \
+cargo objcopy ---bin $1 -- -O binary target/${CARGO_MAKE_CRATE_TARGET_TRIPLE}/release/$1.bin && \
+openocd -f ../support/openocd-ftdi232h.cfg -c "batch_flash_img target/${CARGO_MAKE_CRATE_TARGET_TRIPLE}/release/$1.bin"
+'''
+]
+
+[tasks.dfu_debug]
+script = [
+'''
+cargo build --bin $1 && \
+cargo objcopy ---bin $1 -- -O binary target/${CARGO_MAKE_CRATE_TARGET_TRIPLE}/debug/$1.bin && \
+dfu-util -a 0 -s 0x08000000:leave -D target/${CARGO_MAKE_CRATE_TARGET_TRIPLE}/debug/$1.bin
+'''
+]
+
+[tasks.dfu_release]
+script = [
+'''
+cargo build --bin $1 --release && \
+cargo objcopy ---bin $1 -- -O binary target/${CARGO_MAKE_CRATE_TARGET_TRIPLE}/release/$1.bin && \
+dfu-util -a 0 -s 0x08000000:leave -D target/${CARGO_MAKE_CRATE_TARGET_TRIPLE}/release/$1.bin
+'''
+]
