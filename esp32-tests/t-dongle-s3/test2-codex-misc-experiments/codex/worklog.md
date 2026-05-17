@@ -1,0 +1,409 @@
+# Task Log
+
+## Context
+
+- Working directory: `/home/matsi/src/ai-tests/esp32/t-dongle-s3`
+- Previous work log preserved separately at `/home/matsi/src/ai-tests/esp32/tasklog1.md`
+- Goal:
+  - Create a simple ESP-IDF + LVGL digital clock app for `LILYGO T-Dongle S3`
+  - Use the `BOOT` / `GPIO0` button at runtime to switch between time and date if it is usable
+  - Initialize the displayed time/date to the Unix epoch start
+
+## Actions, Commands, Ideas
+
+- Inspected workspace layout to find the new target directory and confirm the old WT32 work had been moved out:
+  - Command: `pwd`
+  - Command: `find . -maxdepth 2 -type d | sort`
+  - Command: `find ./t-dongle-s3 -maxdepth 2 -type f | sort`
+- Verified the new board directory started empty:
+  - Command: `ls -la ./t-dongle-s3`
+- Checked the moved WT32 project just to understand the surrounding workspace state:
+  - Command: `ls -la ./wt32-sc01-plus`
+- Located the previous task log that must not be removed:
+  - Command: `find . -name 'tasklog1.md' -o -name 'tasklog.md' | sort`
+  - Result: found `/home/matsi/src/ai-tests/esp32/tasklog1.md`
+- Verified the ESP-IDF toolchain version in the new project directory:
+  - Command: `idf.py --version`
+  - Result: `ESP-IDF v5.5.4`
+- Looked up board details from web sources rather than local libraries, per instruction.
+- Hardware facts gathered from official LILYGO repo/docs:
+  - Board: `T-Dongle-S3`
+  - Display: `ST7735 (SPI)`, resolution `160 x 80`
+  - BOOT button: `GPIO0`
+  - BOOT button description says it is a customizable function button at runtime and also used for download mode when held during power-on
+- Additional practical pin mapping gathered from ESPHome device documentation for this board:
+  - LCD SCLK: `GPIO5`
+  - LCD MOSI: `GPIO3`
+  - LCD RESET: `GPIO1`
+  - LCD CS: `GPIO4`
+  - LCD DC: `GPIO2`
+  - LCD backlight: `GPIO38`
+  - Reported display rotation/model: `INITR_MINI160X80`, rotation `270`
+- Dependency/version selection plan based on current registry pages:
+  - `lvgl/lvgl` latest stable: `9.5.0`
+  - `espressif/esp_lvgl_port` latest stable: `2.7.2`
+  - `waveshare/esp_lcd_st7735` latest stable: `1.0.1`
+- Implementation plan:
+  - Scaffold a minimal ESP-IDF app
+  - Bring up the ST7735 panel over SPI
+  - Bind it to LVGL using `esp_lvgl_port`
+  - Create a centered digital clock label and a secondary hint/status label
+  - Start from Unix epoch `0`
+  - Advance the displayed time from `esp_timer_get_time()`
+  - Poll or debounce `GPIO0` during runtime to toggle between `time` and `date` views
+  - Build and fix any API/config mismatches until it compiles cleanly under `ESP-IDF v5.5.4`
+- Created the project skeleton and first code pass:
+  - Command: `mkdir -p main`
+  - Added:
+    - `CMakeLists.txt`
+    - `sdkconfig.defaults`
+    - `main/CMakeLists.txt`
+    - `main/idf_component.yml`
+    - `main/main.cpp`
+  - First implementation choices:
+    - Manual LVGL integration rather than adding another LVGL port abstraction
+    - `waveshare/esp_lcd_st7735` for the LCD driver
+    - Runtime `GPIO0` polling task only toggles mode state; the LVGL task owns all UI updates
+- First build attempt:
+  - Command: `idf.py build`
+  - Result: failed before configuration completed because the sandbox blocked access to the ESP Component Registry
+  - Blocking URL mentioned by the toolchain: `https://components-file.espressif.com/components/lvgl/lvgl.json`
+- Retried the build with network permission so managed components could be fetched:
+  - Command: `idf.py build`
+  - Result:
+    - Downloaded and locked dependencies:
+      - `lvgl/lvgl 9.5.0`
+      - `waveshare/esp_lcd_st7735 1.0.1`
+    - CMake/configure succeeded
+    - Compile then failed in `main/main.cpp` on the LCD SPI bus handle cast
+- Fixes applied after the first compile:
+  - Replaced the invalid `reinterpret_cast` for `SPI2_HOST` with `static_cast<esp_lcd_spi_bus_handle_t>(SPI2_HOST)`
+  - Added missing `<cassert>` include for buffer allocation assertions
+  - Replaced the partially designated `esp_timer_create_args_t` initializer with zero-init plus explicit field assignment to keep the code warning-clean
+- Final rebuild after the compile fix:
+  - Command: `idf.py build`
+  - Result: build succeeded
+  - Output binary: `build/t_dongle_s3_digital_clock.bin`
+  - Reported app size: `0x8f7f0`
+  - Free space in the smallest app partition: `0x70810` (`44%`)
+- Delivered behavior in the built app:
+  - LVGL screen shows a digital clock by default
+  - Time base starts at Unix epoch `1970-01-01 00:00:00 UTC` and advances with uptime
+  - Pressing `BOOT` / `GPIO0` during runtime toggles between `TIME` and `DATE`
+  - The button handling is intentionally runtime-only; holding `BOOT` during power-on still remains the board's download-mode behavior
+- Remaining practical caveat:
+  - The display rotation and ST7735 offsets were selected from board-source documentation (`80x160`, rotation `270`, gap `26,1`, BGR/inverted)
+  - The firmware is build-verified here, but not visually hardware-verified in this environment
+- User follow-up after flashing to hardware:
+  - Full screen was not used; the visible UI sat in a black square and the rest of the panel showed random color noise
+  - `BOOT` button toggling worked
+  - Time string rendering was badly corrupted
+  - Date string was partially visible but had garbage at the left edge
+- Diagnosis:
+  - The app was using a rotated `160x80` logical layout, but the ST7735 gap constants left in the code were the portrait offsets (`26,1`)
+  - For this specific `160x80` landscape rotation, the known offsets should be `1,26`
+  - The labels were also auto-sized instead of being constrained to the display width, which made text placement more fragile on a narrow panel
+- Fixes applied for the hardware issues:
+  - Updated the ST7735 landscape gap constants in `main/main.cpp` from `26,1` to `1,26`
+  - Added explicit full-width sizing and centered text alignment to:
+    - mode label
+    - clock/date label
+    - hint label
+  - Re-applied center alignment to the main clock label after mode/font updates
+- Verification after the display-fix patch:
+  - Command: `idf.py build`
+  - Result: build succeeded
+  - Updated output binary: `build/t_dongle_s3_digital_clock.bin`
+  - Reported app size: `0x8f8b0`
+  - Free space in the smallest app partition: `0x70750` (`44%`)
+- User-confirmed result after flashing the display-fix build:
+  - Screen layout and text rendering are now correct
+  - Next request:
+    - Keep using `BOOT` to rotate modes
+    - Add a third mode after `TIME` and `DATE`
+    - New mode should be a tiny-screen matrix-like effect using falling green pixels instead of characters
+- Extension plan:
+  - Replace the old boolean date/time toggle with a proper three-state mode enum
+  - Keep the existing time/date labels for the first two modes
+  - Add a dedicated full-screen LVGL layer for the matrix effect
+  - Animate per-column falling green pixel trails with a low object count so it stays simple and fast on this display
+- Code changes for the new mode:
+  - Added `DisplayMode` enum with `Time`, `Date`, and `Matrix`
+  - Replaced the atomic boolean state with `std::atomic<DisplayMode>`
+  - Added `next_mode()` and `mode_name()` helpers for the button task and logging
+  - Reworked the main UI update path so:
+    - `TIME` and `DATE` reuse the existing text widgets
+    - `MATRIX` hides those widgets and shows a separate animation layer
+  - Added a matrix scene made of small LVGL rectangle objects arranged as falling green pixel trails across the whole screen
+  - Updated hint text flow:
+    - `TIME` shows `BOOT: DATE`
+    - `DATE` shows `BOOT: MATRIX`
+- Verification after adding the matrix mode:
+  - Command: `idf.py build`
+  - Result: build succeeded
+  - Updated output binary: `build/t_dongle_s3_digital_clock.bin`
+  - Reported app size: `0x90430`
+  - Free space in the smallest app partition: `0x6fbd0` (`44%`)
+- User follow-up after testing the matrix mode:
+  - Matrix mode looked correct on hardware
+  - Next request:
+    - Add another mode
+    - New mode should draw the Mandelbrot set
+- Implementation plan for Mandelbrot:
+  - Extend the existing `DisplayMode` enum rather than branching off another demo path
+  - Keep `TIME` and `DATE` as text-widget modes
+  - Keep `MATRIX` as the animated pixel-trail layer
+  - Add `MANDELBROT` as a framebuffer-backed LVGL canvas so the fractal can be rendered pixel-by-pixel once on entry
+- Code changes for the Mandelbrot mode:
+  - Added `DisplayMode::Mandelbrot`
+  - Updated the button cycle to:
+    - `TIME -> DATE -> MATRIX -> MANDELBROT -> TIME`
+  - Added a full-screen LVGL canvas with an RGB565 backing buffer allocated from heap
+  - Added one-time Mandelbrot rendering on mode entry using a small fixed iteration count suitable for the `160x80` screen
+  - Kept text widgets hidden in both visual-only modes:
+    - `MATRIX`
+    - `MANDELBROT`
+- Verification after adding the Mandelbrot mode:
+  - Command: `idf.py build`
+  - Result: build succeeded
+  - Updated output binary: `build/t_dongle_s3_digital_clock.bin`
+  - Reported app size: `0x90c80`
+  - Free space in the smallest app partition: `0x6f380` (`43%`)
+- User follow-up after testing Mandelbrot:
+  - The picture looks good
+  - UX issue: switching into Mandelbrot looks like a hang because the render is currently blocking and only appears after the full calculation finishes
+- Fix plan:
+  - Convert Mandelbrot rendering from a one-shot full-screen calculation into progressive row chunks
+  - Show partial results as rows are computed
+  - Keep lightweight progress feedback visible during rendering so the board clearly looks busy instead of stuck
+- Code changes for progressive Mandelbrot:
+  - Added chunked rendering state with:
+    - next row index
+    - rows-per-step constant
+    - rendered-complete flag
+  - Changed Mandelbrot mode entry to:
+    - clear the canvas immediately
+    - show `MANDEL` in the top label
+    - show `Rendering 0%` in the bottom label
+  - Changed the Mandelbrot renderer to draw only a few rows per LVGL cycle and update the progress percentage after each chunk
+  - Once complete, the bottom hint changes to `BOOT: TIME`
+- Verification after progressive Mandelbrot update:
+  - Command: `idf.py build`
+  - Result: build succeeded
+  - Updated output binary: `build/t_dongle_s3_digital_clock.bin`
+  - Reported app size: `0x94170`
+  - Free space in the smallest app partition: `0x6be90` (`42%`)
+- User requested another mode and selected the oscilloscope idea.
+- Implementation plan for oscilloscope:
+  - Extend the same mode enum and button rotation again
+  - Add a second full-screen canvas-backed visual mode
+  - Render a dim green grid plus animated traces that read clearly on a `160x80` screen
+  - Keep it live immediately on entry, unlike the old blocking Mandelbrot behavior
+- Code changes for the oscilloscope mode:
+  - Added `DisplayMode::Oscilloscope`
+  - Updated the mode cycle to:
+    - `TIME -> DATE -> MATRIX -> MANDELBROT -> OSCILLOSCOPE -> TIME`
+  - Added a dedicated RGB565 LVGL canvas and backing buffer for the scope
+  - Added a fast redraw loop with:
+    - vertical and horizontal grid lines
+    - one bright primary waveform
+    - one softer secondary echo waveform
+  - Reused the top and bottom labels in this mode:
+    - top label: `SCOPE`
+    - bottom label: `BOOT: TIME`
+- Verification after adding the oscilloscope mode:
+  - Command: `idf.py build`
+  - Result: build succeeded
+  - Updated output binary: `build/t_dongle_s3_digital_clock.bin`
+  - Reported app size: `0x95560`
+  - Free space in the smallest app partition: `0x6aaa0` (`42%`)
+- User requested the oscilloscope waveform to move `10x` faster.
+- Speed tuning choice:
+  - Kept the redraw interval unchanged so LVGL load and display smoothness stay predictable
+  - Increased the oscilloscope phase advance per frame from `0.28f` to `2.8f`, which gives the requested `10x` motion speedup
+- Verification after oscilloscope speed change:
+  - Command: `idf.py build`
+  - Result: build succeeded
+  - Updated output binary: `build/t_dongle_s3_digital_clock.bin`
+  - Reported app size unchanged at `0x95560`
+- User requested a better oscilloscope improvement:
+  - Increase smoothness by refreshing more frequently instead of only increasing waveform delta
+  - If possible, make the waveform random and based on hardware-originated variation
+- Design choice for the improved scope:
+  - Replace the synthetic sine-based full-frame waveform with a scrolling trace buffer
+  - Update the scope more frequently by reducing the step interval from `45 ms` to `8 ms`
+  - Generate new samples from `esp_random()`, which uses the ESP32 hardware RNG path, then smooth them into an oscilloscope-like signal
+- Code changes for the improved scope:
+  - Replaced the old phase-based waveform model with two trace buffers:
+    - primary trace
+    - softer echo trace
+  - Added smoothed random sample generation with occasional spikes so the signal looks live rather than repetitive
+  - Kept the same canvas/grid rendering path, but now redraws a scrolled waveform history instead of re-evaluating a synthetic sine curve
+- Verification after scope smoothness/randomness update:
+  - Command: `idf.py build`
+  - Result: build succeeded
+  - Updated output binary: `build/t_dongle_s3_digital_clock.bin`
+  - Reported app size: `0x94730`
+  - Free space in the smallest app partition: `0x6b8d0` (`42%`)
+- User requested another speed increase for the scope and said:
+  - waveform still moves slowly
+  - make it `10x` faster
+  - if hardware-driven randomness cannot support that cleanly, roll back to a synthetic waveform
+- Final speed-up choice:
+  - Kept the hardware-random trace path
+  - Increased scope update cadence from `8 ms` to `4 ms`
+  - Increased horizontal advance from `1` new sample per update to `5` new samples per update
+  - Lowered the LVGL task minimum delay from `5 ms` to `2 ms` so the scope renderer can actually run at the faster cadence
+  - Effective scope horizontal speed change:
+    - old: `1 sample / 8 ms`
+    - new: `5 samples / 4 ms`
+    - approximately `10x` faster
+- Verification after final scope speed-up:
+  - Command: `idf.py build`
+  - Result: build succeeded
+  - Updated output binary: `build/t_dongle_s3_digital_clock.bin`
+  - Reported app size: `0x94740`
+- User requested another `5x` speed increase relative to the current scope behavior.
+- Speed tuning choice:
+  - Kept the same `4 ms` scope update cadence
+  - Increased horizontal advance from `5` samples per update to `25` samples per update
+  - That gives a further `5x` speedup while keeping redraw frequency and LVGL scheduling unchanged
+- Verification after additional `5x` scope speed-up:
+  - Command: `idf.py build`
+  - Result: build succeeded
+  - Updated output binary: `build/t_dongle_s3_digital_clock.bin`
+  - Reported app size unchanged at `0x94740`
+- User requested a smoother scope while keeping the overall sweep rate about the same:
+  - move more frequently with a smaller step
+  - return to synthetic "beautiful" waveforms because this is a demo
+- Scope redesign choice:
+  - Switched the scope signal source back from hardware-random traces to synthetic layered sine waveforms
+  - Increased scope update frequency from `4 ms` to `2 ms`
+  - Reduced horizontal advance from `25` pixels per update to `12` pixels per update
+  - Lowered the LVGL task minimum delay from `2 ms` to `1 ms` so the scope renderer can service the tighter cadence
+  - Result:
+    - previous: `25 px / 4 ms` (`6.25 px/ms`)
+    - new: `12 px / 2 ms` (`6.0 px/ms`)
+    - nearly the same overall speed, but with smaller and more frequent motion steps
+- Verification after synthetic smoother scope update:
+  - Command: `idf.py build`
+  - Result: build succeeded
+  - Updated output binary: `build/t_dongle_s3_digital_clock.bin`
+  - Reported app size: `0x956c0`
+
+## Web Sources Used
+
+- Official LILYGO docs in the `Xinyuan-LilyGO/T-Dongle-S3` repository:
+  - `https://raw.githubusercontent.com/Xinyuan-LilyGO/T-Dongle-S3/main/docs/en/t-dongle-s3/REAMDE.MD`
+- ESP Component Registry:
+  - `https://components.espressif.com/components/lvgl/lvgl`
+  - `https://components.espressif.com/components/espressif/esp_lvgl_port`
+  - `https://components.espressif.com/components/waveshare/esp_lcd_st7735`
+- Supplemental runtime pin mapping:
+  - `https://devices.esphome.io/devices/lilygo-tdongle-s3/`
+- RF waterfall investigation status:
+  - Started checking the local ESP-IDF 5.5.4 tree for supported Wi-Fi scan/sniffer APIs before implementing the mode.
+  - Verified that public ESP-IDF support clearly exists for Wi-Fi scanning (`esp_wifi_scan_start`) and Wi-Fi initialization.
+  - Did not find a straightforward public API in that quick pass for true RF energy-per-channel spectrum data on ESP32-S3.
+  - Conclusion at this point:
+    - a real RF spectrum waterfall was not yet implemented
+    - the practical supported version for this board/IDF is likely a Wi-Fi-scan-based channel activity waterfall instead of raw RF power
+  - Work paused there when the user asked for `/status/statusa`, so no RF mode code was added yet.
+- User clarified the desired feature:
+  - not true RF spectrum power
+  - a waterfall-like display whose intensity depends on channel activity
+- Practical implementation choice:
+  - Add a `2.4 GHz` Wi-Fi channel-activity waterfall mode based on repeated station-mode Wi-Fi scans
+  - Use per-channel AP presence/RSSI aggregation to drive row color intensity
+  - Render it as a scrolling history on a full-screen canvas so it reads like a waterfall/spectrum display
+- Code changes for the Wi-Fi waterfall mode:
+  - Added `DisplayMode::WifiWaterfall`
+  - Updated the mode cycle to:
+    - `TIME -> DATE -> MATRIX -> MANDELBROT -> OSCILLOSCOPE -> WIFI -> TIME`
+  - Added ESP-IDF Wi-Fi dependencies to `main/CMakeLists.txt`:
+    - `esp_wifi`
+    - `esp_event`
+    - `esp_netif`
+    - `nvs_flash`
+  - Added NVS and Wi-Fi scanner initialization in `app_main()`
+  - Added a dedicated Wi-Fi scan task that:
+    - runs only while the Wi-Fi waterfall mode is active
+    - performs repeated station-mode scans
+    - aggregates activity over channels `1..13`
+    - pushes one new row at a time into a scrolling canvas
+  - Added a full-screen canvas for the Wi-Fi waterfall display
+  - Added label foreground ordering so titles/status remain visible above full-screen canvases
+  - Updated neighboring mode hints for the expanded rotation:
+    - Mandelbrot completion now hints `BOOT: SCOPE`
+    - Oscilloscope now hints `BOOT: WIFI`
+- First build attempt for the Wi-Fi waterfall mode:
+  - Command: `idf.py build`
+  - Result:
+    - the code compiled and linked
+    - the final binary exceeded the existing `1 MB` factory app partition
+  - Reported overflow:
+    - binary size `0x1190c0`
+    - partition overflow `0x190c0`
+- Recovery action:
+  - Added a custom partition table in `partitions.csv`
+  - Switched the project to that custom partition table in `sdkconfig.defaults`
+  - New layout keeps the same `2 MB` flash target but gives the single factory app almost all available flash:
+    - `factory` app partition size `0x1F0000`
+- The first rebuild after adding the custom partition table still used the old generated `sdkconfig` partition selection:
+  - active config still had `CONFIG_PARTITION_TABLE_SINGLE_APP=y`
+  - fixed by updating the generated `sdkconfig` to `CONFIG_PARTITION_TABLE_CUSTOM=y` and `CONFIG_PARTITION_TABLE_FILENAME="partitions.csv"`
+- Verification after Wi-Fi waterfall integration and partition fix:
+  - Command: `idf.py build`
+  - Result: build succeeded
+  - Updated output binary: `build/t_dongle_s3_digital_clock.bin`
+  - Reported app size: `0x1190c0`
+  - Smallest app partition size: `0x1f0000`
+  - Free space in app partition: `0xd6f40` (`43%`)
+
+## 2026-04-30 Refactor: split `main.cpp` into mode-specific files
+
+- New user task:
+  - Refactor `t-dongle-s3/main` so different display modes live in different files
+  - Keep `main.cpp` focused on initialization and common control flow
+- Initial inspection commands:
+  - `sed -n '1,260p' /home/matsi/src/ai-tests/esp32/t-dongle-s3/main/main.cpp`
+  - `sed -n '261,620p' /home/matsi/src/ai-tests/esp32/t-dongle-s3/main/main.cpp`
+  - `sed -n '621,1100p' /home/matsi/src/ai-tests/esp32/t-dongle-s3/main/main.cpp`
+  - `tail -n 80 /home/matsi/src/ai-tests/esp32/t-dongle-s3/tasklog.md`
+- Observations from the current code:
+  - `main.cpp` contains all mode state, rendering code, Wi-Fi scan code, and platform initialization
+  - natural split points are:
+    - matrix mode
+    - mandelbrot mode
+    - oscilloscope mode
+    - Wi-Fi waterfall mode
+    - common app/UI/display state and helpers
+- Refactoring plan:
+  - create a shared header for constants, app state, and cross-file declarations
+  - move mode logic into separate `.cpp` files under `main/`
+  - keep `main.cpp` for startup, LVGL/LCD init, button handling, mode switching, and UI dispatch
+  - update `main/CMakeLists.txt` with the new sources
+  - rebuild with `idf.py build` to verify no behavior regressions at compile/link level
+- Refactoring implementation:
+  - Added shared header:
+    - `main/app.h`
+  - Added common UI/state implementation:
+    - `main/common_ui.cpp`
+  - Split mode implementations into dedicated files:
+    - `main/mode_matrix.cpp`
+    - `main/mode_mandelbrot.cpp`
+    - `main/mode_scope.cpp`
+    - `main/mode_wifi.cpp`
+  - Replaced the old monolithic `main/main.cpp` with a thinner startup-oriented version:
+    - keeps board init
+    - keeps LVGL task loop
+    - keeps button handling and mode switching
+    - keeps top-level app startup
+  - Updated `main/CMakeLists.txt` so all new translation units are compiled
+- Verification after refactor:
+  - Command: `idf.py build`
+  - Result: build succeeded
+  - Output binary: `build/t_dongle_s3_digital_clock.bin`
+  - Reported app size: `0x119860`
+  - Smallest app partition size: `0x1f0000`
+  - Free space in app partition: `0xd67a0` (`43%`)
