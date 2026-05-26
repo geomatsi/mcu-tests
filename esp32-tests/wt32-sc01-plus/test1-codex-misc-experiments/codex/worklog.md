@@ -1,0 +1,460 @@
+# Task Log
+
+## 2026-04-30
+
+- Started task in `/home/matsi/src/ai-tests/esp32`.
+- User requirements captured:
+  - Log all steps, ideas, and plans to `tasklog.md`.
+  - Use ESP-IDF v5.5.4 tools located under `/home/matsi/devel2/tools/mcu/esp32`.
+  - Create a sample ESP-IDF application for `WT32-SC01-PLUS` with two buttons, `hello` and `world`, each printing its name to the serial debug console when pressed.
+- Inspected workspace state.
+- Observed that the working directory is essentially empty except for a `.codex` file.
+- Initial plan:
+- Verify the ESP-IDF environment available in the current shell.
+- Scaffold a minimal ESP-IDF project in the current workspace.
+- Determine suitable GPIOs for two buttons on `WT32-SC01-PLUS`.
+- Implement GPIO input handling with debounce/polling or interrupts.
+- Verify the project builds successfully with the available ESP-IDF toolchain.
+- Verified ESP-IDF shell state:
+  - `idf.py` resolved to `/home/matsi/devel2/tools/mcu/esp32/esp-idf/tools/idf.py`.
+  - `idf.py --version` reported `ESP-IDF v5.5.4`.
+  - `IDF_PATH` is `/home/matsi/devel2/tools/mcu/esp32/esp-idf`.
+- Current focus:
+  - Find reliable `WT32-SC01-PLUS` button GPIO assignments before writing board-specific code.
+- User corrected the plan:
+  - No physical button search is needed.
+  - The target board has a display with touchscreen.
+  - UI should be built in the common style for this board using `lvgl` for UI and `LovyanGFX` for touchscreen/display handling.
+- Updated implementation direction:
+  - Build a touchscreen UI app with two on-screen buttons, `hello` and `world`.
+  - Each button press should log its name to the serial debug console.
+  - Inspect the local toolchain tree for available `lvgl`, `LovyanGFX`, and any board support relevant to `WT32-SC01-PLUS`.
+- Search results in `/home/matsi/devel2/tools/mcu/esp32`:
+  - No direct hits for `WT32-SC01-PLUS`.
+  - No direct hits for `LovyanGFX` / `LGFX`.
+  - `lvgl` support is present in ESP-IDF examples via component manifests and example code.
+- Interim conclusion:
+  - `lvgl` is locally supportable.
+  - `LovyanGFX` does not appear to be preinstalled in the scanned tool tree, so I need to check the wider local filesystem before choosing between vendoring board glue or relying on an existing local copy.
+- Wider local filesystem scan:
+  - Did not reveal a local `LovyanGFX` library checkout in the searched paths.
+  - Revealed a potentially useful board document: `/home/matsi/WT32-SC01-PLUS-v13.pdf`.
+- Next idea:
+  - Extract panel/touch controller and GPIO details from the local board PDF.
+  - Use that information to build a local board support component if `LovyanGFX` itself is not available.
+- Extracted from `/home/matsi/WT32-SC01-PLUS-v13.pdf`:
+  - Module: `WT32-S3-WROVER-N16R2`.
+  - LCD driver: `ST7796UI`.
+  - LCD resolution: `480x320`.
+  - LCD interface: `MCU8080 8-bit`.
+  - Touch controller: `FT6336U` over `I2C`.
+  - Relevant GPIOs:
+    - `BL_PWM` = GPIO45
+    - `LCD_RESET` = GPIO4
+    - `LCD_RS` = GPIO0
+    - `LCD_WR` = GPIO47
+    - `LCD_TE` = GPIO48
+    - `LCD_DB0..7` = GPIO9,46,3,8,18,17,16,15
+    - `TP_INT` = GPIO7
+    - `TP_SDA` = GPIO6
+    - `TP_SCL` = GPIO5
+    - `TP_RST` = GPIO4
+- Revised technical plan:
+  - Prefer local/native ESP-IDF display and touch drivers if available.
+  - Keep `lvgl` for the UI layer.
+  - If `LovyanGFX` is unavailable locally, implement board support with ESP-IDF primitives rather than blocking the sample on a missing external library.
+- User clarified dependency sourcing:
+  - Do not search locally for these libraries anymore.
+  - Fetch them from the web and choose recommended versions.
+- Online version selection notes:
+  - `lvgl/lvgl`: ESP Component Registry shows `9.5.0` as latest stable.
+  - `lovyan03/LovyanGFX`: GitHub releases show `1.2.20` as latest release on `2026-04-21`.
+- Plan update:
+  - Vendor `LovyanGFX` into `components/` from the upstream release tag.
+  - Pin `lvgl` via `idf_component.yml` or vendor it directly if needed.
+  - Implement the `WT32-SC01-PLUS` board config in project code, using the known panel/touch wiring.
+- Dependency fetch attempt:
+  - Tried `git clone --depth 1 --branch 1.2.20 https://github.com/lovyan03/LovyanGFX.git components/LovyanGFX`.
+  - The sandboxed attempt failed with DNS resolution error for `github.com`.
+  - Re-ran the fetch with escalated permissions because the task explicitly requires downloading dependencies.
+- Project scaffold created:
+  - Root `CMakeLists.txt`.
+  - `sdkconfig.defaults` with `CONFIG_LV_COLOR_DEPTH_16=y`.
+  - `main/CMakeLists.txt`.
+  - `main/idf_component.yml` pinning `lvgl/lvgl` to `^9.5.0`.
+  - `main/main.cpp` implementing:
+    - `LovyanGFX` board class for `WT32-SC01-PLUS`.
+    - LVGL display flush callback.
+    - LVGL touch input callback.
+    - Two on-screen buttons: `hello` and `world`.
+    - Serial logging on button press.
+- Current expectation:
+  - Once `LovyanGFX` is present, build the project for `esp32s3`.
+  - Fix any compile-time API drift based on the exact fetched library version and generated LVGL component version.
+- `git clone` remained incomplete after creating only a partial repository directory.
+- Switched dependency fetch method:
+  - Moved the partial checkout aside to avoid component discovery conflicts.
+  - Downloaded `https://github.com/lovyan03/LovyanGFX/archive/refs/tags/1.2.20.tar.gz`.
+  - Extracted it into `components/LovyanGFX`.
+  - Moved the failed partial checkout to `/tmp/LovyanGFX.partial`.
+- Next step:
+  - Build with `idf.py set-target esp32s3 build`.
+  - Let the IDF component manager fetch `lvgl/lvgl ^9.5.0`.
+  - Fix compile issues, especially around LVGL 9 API details and `LovyanGFX` method signatures.
+- First full build results:
+  - LVGL `9.5.0` fetched successfully from the Espressif component registry.
+  - `LovyanGFX` compiled almost completely, and the project reached compilation of `main.cpp`.
+  - Main integration issue:
+    - `LovyanGFX` fell back to its internal LVGL compatibility headers because its shim only checked for `lvgl/lvgl.h`.
+    - The managed LVGL component in this project provides `lvgl.h` at the include root.
+    - That caused duplicate LVGL type definitions from `components/LovyanGFX/src/lgfx/v1/lv_font/*`.
+  - Additional app issue:
+    - Explicit references to larger Montserrat fonts (`18`, `26`, `28`) were not enabled in the default LVGL config.
+- Patch plan based on the failure:
+  - Update `components/LovyanGFX/src/lgfx/v1/lvgl.h` to also detect and include `lvgl.h`.
+  - Remove explicit large-font selections from the sample UI and rely on LVGL defaults.
+  - Re-run the build and fix any remaining compile or link errors.
+- Follow-up build attempt revealed an unexpected workspace state change:
+  - `idf.py build` re-ran CMake as expected.
+  - CMake then failed with `Failed to resolve component 'LovyanGFX' required by component 'main': unknown name`.
+  - Inspection showed the local `components/` directory had become empty, so the `LovyanGFX` source tree was no longer present there.
+- Recovery plan:
+  - Restore `LovyanGFX` from the already downloaded `/tmp/LovyanGFX-1.2.20.tar.gz`.
+  - Re-apply the local patches to its LVGL shim and, if needed, its ESP-IDF CMake registration.
+  - Build again once the component tree is back in place.
+- After restoring and retrying, `LovyanGFX` still failed as an ESP-IDF/LVGL9 backend:
+  - Its bundled LVGL font sources under `src/lgfx/Fonts/lvgl/*.c` are not a clean match for the managed LVGL 9.5.0 component setup in this project.
+  - The failure mode moved from duplicate type definitions to invalid/unknown LVGL font types during compilation of the bundled font sources.
+- Pragmatic pivot:
+  - For an ESP-IDF-native application, use Espressif's maintained display/touch drivers instead of forcing `LovyanGFX` through this incompatibility.
+  - Keep `lvgl` as the UI layer.
+  - Switch dependencies to:
+    - `espressif/esp_lcd_st7796 ^1.4.0`
+    - `espressif/esp_lcd_touch_ft5x06 ^1.1.0`
+- Code changes for the pivot:
+  - Updated `main/idf_component.yml` to use the display and touch components from Espressif's component registry.
+  - Updated `main/CMakeLists.txt` to require those components instead of `LovyanGFX`.
+  - Rewrote `main/main.cpp` around:
+    - `esp_lcd` I80 bus + `ST7796`
+    - `FT5x06` touch over I2C
+    - LVGL flush/touch callbacks
+    - The same two-button touchscreen UI and serial logging behavior
+  - Moved the unused `LovyanGFX` checkout out of the project tree to `/tmp/LovyanGFX-1.2.20-unused` so it no longer participates in the build.
+- Build verification after the pivot:
+  - The first build against the new components fetched:
+    - `espressif/esp_lcd_st7796 1.4.0`
+    - `espressif/esp_lcd_touch 1.2.1`
+    - `espressif/esp_lcd_touch_ft5x06 1.1.0~1`
+  - Compile issues were limited to C++ designated initializer ordering with ESP-IDF structs and one deprecated touch-read helper.
+  - Fixed by:
+    - Replacing designated initializers with zero-init plus explicit field assignment.
+    - Replacing deprecated `esp_lcd_touch_get_coordinates()` with `esp_lcd_touch_get_data()`.
+- Final verification:
+  - `idf.py build` completed successfully for target `esp32s3`.
+  - Output binary: `build/wt32_sc01_plus_touch_buttons.bin`.
+  - Reported app binary size: `0x82400` bytes.
+  - Free space in smallest app partition: `0x7dc00` bytes (`49%`).
+- Close-out:
+  - Re-checked the workspace state before handing off the result.
+  - Kept the delivered implementation on the stable ESP-IDF-native stack:
+    - `lvgl 9.5.0`
+    - `espressif/esp_lcd_st7796 1.4.0`
+    - `espressif/esp_lcd_touch_ft5x06 1.1.0`
+  - Prepared the final handoff with the main source file, dependency manifest, task log, and built binary paths.
+- User report:
+  - display works
+  - touch coordinates are wrong
+  - button presses only register from unrelated positions in the right-bottom area
+- Initial inspection commands:
+  - `sed -n '1,320p' /home/matsi/src/ai-tests/esp32/wt32-sc01-plus/main/main.cpp`
+  - `ls -1 /home/matsi/src/ai-tests/esp32/wt32-sc01-plus`
+  - `tail -n 80 /home/matsi/src/ai-tests/esp32/wt32-sc01-plus/tasklog1.md`
+- Findings in the current code:
+  - LCD orientation is configured with:
+    - `esp_lcd_panel_swap_xy(..., true)`
+    - `esp_lcd_panel_mirror(..., true, true)`
+  - Touch orientation is also configured with:
+    - `swap_xy = 1`
+    - `mirror_x = 1`
+    - `mirror_y = 1`
+  - The user symptom strongly suggests touch coordinates are being over-transformed.
+- Additional verification steps:
+  - Reviewed the local `esp_lcd_touch` software adjustment order in:
+    - `managed_components/espressif__esp_lcd_touch/esp_lcd_touch.c`
+  - Confirmed the transform order is:
+    - mirror x
+    - mirror y
+    - swap x/y
+  - Reviewed the local FT5x06 README:
+    - `managed_components/espressif__esp_lcd_touch_ft5x06/README.md`
+  - Checked an external WT32-SC01-PLUS configuration reference indicating a working touch transform of:
+    - `swap_xy: true`
+    - `mirror_x: false`
+    - `mirror_y: true`
+- Patch plan:
+  - keep the working display orientation unchanged
+  - change only the FT5x06 transform flags
+  - make the display and touch transforms explicit as named constants in `main/main.cpp`
+- Code changes applied:
+  - added named transform constants for display and touch orientation
+  - kept display orientation as:
+    - `swap_xy = true`
+    - `mirror_x = true`
+    - `mirror_y = true`
+  - changed touch orientation to:
+    - `swap_xy = true`
+    - `mirror_x = false`
+    - `mirror_y = true`
+- Next verification step:
+  - rebuild with `idf.py build`
+  - then flash and test touch positions on hardware
+- Verification result:
+  - Command: `idf.py build`
+  - Result: build succeeded
+  - Output binary: `build/wt32_sc01_plus_touch_buttons.bin`
+  - Reported app size: `0x82410`
+  - Free space in smallest app partition: `0x7dbf0` (`49%`)
+
+## 2026-04-30 Follow-up: touchscreen alignment confirmed, expand UI grid
+
+- New user task after confirming touch alignment:
+  - keep a one-line board title at the top
+  - replace the demo with a full-screen grid of buttons
+  - use `6` columns and `4` rows for `24` buttons
+  - label buttons with letters or numbers
+  - keep buttons blue, turn yellow while pressed
+  - print the button name to the serial console on press
+- Implementation plan:
+  - remove the previous two-button vertical layout
+  - keep the title directly on the screen
+  - add a grid-layout container that fills the remaining area
+  - create `24` buttons labeled `A` through `X`
+  - switch logging from `LV_EVENT_CLICKED` to `LV_EVENT_PRESSED`
+  - keep the pressed-state visual feedback entirely in LVGL styles
+- Code changes applied:
+  - added grid constants:
+    - `kButtonCols = 6`
+    - `kButtonRows = 4`
+    - `kButtonCount = 24`
+  - updated button event handling to log on `LV_EVENT_PRESSED`
+  - updated button styling:
+    - default background blue
+    - pressed background yellow
+    - pressed label text dark for contrast
+  - replaced the old container/subtitle/two-button layout with:
+    - a top-aligned title label
+    - a bottom grid container sized to the remaining display area
+    - `24` grid-stretched buttons labeled `A` to `X`
+- Next verification step:
+  - rebuild with `idf.py build`
+  - flash and verify that each cell highlights yellow while held and logs its label on press
+- Verification result:
+  - Command: `idf.py build`
+  - Result: build succeeded
+  - Output binary: `build/wt32_sc01_plus_touch_buttons.bin`
+  - Reported app size: `0x82650`
+  - Free space in smallest app partition: `0x7d9b0` (`49%`)
+
+## 2026-05-01 Follow-up: button state colors
+
+- New user feedback:
+  - current visual state looks inverted
+  - buttons appear yellow when not pressed and blue when pressed
+  - the yellow tone also looks wrong on hardware
+- Interpretation:
+  - the touch logic is fine now
+  - the remaining issue is purely LVGL style-state behavior on the button widget
+- Patch plan:
+  - remove the yellow pressed style entirely
+  - force explicit default and pressed selectors on `LV_PART_MAIN`
+  - make unpressed buttons blue and pressed buttons red
+  - keep label text white in both states
+- Code changes applied:
+  - changed default button color to blue `0x174F86`
+  - changed pressed button color to red `0xC62828`
+  - explicitly set for both default and pressed states:
+    - background opacity
+    - background color
+    - gradient color
+    - gradient direction
+    - radius
+    - shadow width
+    - border width
+    - outline width
+    - padding
+  - removed the pressed-state dark label text override
+- Next verification step:
+  - rebuild with `idf.py build`
+  - flash and confirm:
+    - idle buttons are blue
+    - held buttons are red
+- Verification result:
+  - Command: `idf.py build`
+  - Result: build succeeded
+  - Output binary: `build/wt32_sc01_plus_touch_buttons.bin`
+  - Reported app size: `0x82710`
+  - Free space in smallest app partition: `0x7d8f0` (`49%`)
+- Additional cleanup:
+  - the first rebuild succeeded but emitted C++ warnings about enum-type bitwise combination in LVGL style selectors
+  - added a `style_selector()` helper in `main/main.cpp`
+  - replaced raw `LV_PART_MAIN | LV_STATE_*` expressions with that helper
+- Final verification step:
+  - rebuild once more to confirm the style fix remains correct and the warnings are gone
+- Final verification result:
+  - Command: `idf.py build`
+  - Result: build succeeded
+  - Output binary: `build/wt32_sc01_plus_touch_buttons.bin`
+  - Reported app size: `0x82710`
+  - Free space in smallest app partition: `0x7d8f0` (`49%`)
+  - No selector-combination warnings were emitted in this final rebuild
+
+## 2026-05-01 Follow-up: button colors still appear swapped on hardware
+
+- New user feedback:
+  - idle buttons still appear maroon
+  - touched buttons appear blue
+  - requested behavior remains:
+    - idle blue
+    - pressed red
+- Root-cause reasoning:
+  - this no longer matches a style-state inversion
+  - the observed colors are consistent with red/blue channel swap at the LCD panel level
+  - examples:
+    - intended blue can appear brown/maroon if interpreted with swapped channels
+    - intended red can appear blue if interpreted with swapped channels
+- Fix plan:
+  - correct the LCD panel color element order instead of hacking per-widget colors
+  - keep the existing LVGL button default/pressed color assignments unchanged
+- Code change applied:
+  - changed `panel_config.rgb_ele_order` in `init_panel()` from:
+    - `LCD_RGB_ELEMENT_ORDER_RGB`
+  - to:
+    - `LCD_RGB_ELEMENT_ORDER_BGR`
+- Expected effect:
+  - make all UI colors render according to their actual code values
+  - specifically:
+    - default buttons should now appear blue
+    - pressed buttons should now appear red
+- Next verification step:
+  - rebuild with `idf.py build`
+  - flash and confirm the button colors on hardware
+- Verification result:
+  - Command: `idf.py build`
+  - Result: build succeeded
+  - Output binary: `build/wt32_sc01_plus_touch_buttons.bin`
+  - Reported app size: `0x82710`
+  - Free space in smallest app partition: `0x7d8f0` (`49%`)
+
+## 2026-04-30 Follow-up: horizontal touch range correction
+
+- New user feedback after flashing the previous fix:
+  - vertical alignment is now correct
+  - horizontal alignment is still wrong
+  - left halves of buttons do not trigger
+  - right halves trigger
+  - touches to the right of the buttons also trigger the buttons
+- Interpretation:
+  - this no longer looks like a mirror/swap issue
+  - it looks like a range/scaling issue on the touch X axis after the transform
+- Reasoning step:
+  - current display resolution is landscape `480x320`
+  - current touch transform uses `swap_xy = true`
+  - the FT5x06 transform is applied after `x_max/y_max`
+  - therefore the touch driver should use the controller's native portrait limits before swapping
+- Patch applied:
+  - added explicit native FT5x06 limits:
+    - `kTouchRawXMax = 320`
+    - `kTouchRawYMax = 480`
+  - changed `touch_config` from:
+    - `x_max = kHorRes`
+    - `y_max = kVerRes`
+  - to:
+    - `x_max = kTouchRawXMax`
+    - `y_max = kTouchRawYMax`
+- Expected effect:
+  - fix horizontal stretching/offset caused by using rotated display dimensions as touch input limits
+  - keep the already-correct vertical behavior unchanged
+- Next verification step:
+  - rebuild with `idf.py build`
+  - flash and re-test horizontal touch alignment on hardware
+- Verification result:
+  - Command: `idf.py build`
+  - Result: build succeeded
+  - Output binary: `build/wt32_sc01_plus_touch_buttons.bin`
+  - Reported app size: `0x82410`
+  - Free space in smallest app partition: `0x7dbf0` (`49%`)
+
+## Web Sources Used
+
+- WT32-SC01-PLUS related touch/display transform example:
+  - `https://github.com/esphome/esphome/issues/10799`
+
+## 2026-05-01 Follow-up: USB HID keyboard over USB-C
+
+- New user task:
+  - keep the current touchscreen button grid behavior in the serial debug console
+  - add USB HID device support on the board USB Type-C connector
+  - send each pressed button label to the host computer as a keyboard key event
+- Implementation plan:
+  - add the ESP TinyUSB component dependency to the project
+  - configure one HID interface for a keyboard report descriptor
+  - reuse the existing LVGL button press callback and fan out the event to USB HID
+  - queue HID keypresses so USB reporting does not block the LVGL event path
+- Code change applied:
+  - added `espressif/esp_tinyusb` to `main/idf_component.yml`
+  - dependency resolution pulled in:
+    - `espressif/esp_tinyusb` `2.1.1`
+    - `espressif/tinyusb` `0.19.0~3`
+  - enabled one HID interface with `CONFIG_TINYUSB_HID_COUNT=1` in:
+    - `sdkconfig.defaults`
+    - `sdkconfig`
+  - added TinyUSB HID keyboard descriptors and callbacks in `main/main.cpp`
+  - added a USB HID sender queue/task in `main/main.cpp`
+  - mapped single-character button labels to HID keycodes for:
+    - `A-Z`
+    - `a-z`
+    - `0-9`
+  - updated the existing button press callback so every press now:
+    - logs the label to the serial console
+    - queues the same label for USB HID keyboard transmission
+- Expected effect:
+  - when connected to a host through the USB Type-C port, the board should enumerate as a USB HID keyboard
+  - pressing a touchscreen button should emit a press-and-release keyboard event for that label on the host
+  - the serial console logging behavior should remain unchanged
+- Next verification step:
+  - build with `idf.py build`
+  - flash to the board
+  - connect the USB Type-C port to a host and confirm HID keyboard enumeration plus key delivery
+- Verification result:
+  - Command: `idf.py build`
+  - Result: build succeeded
+  - Output binary: `build/wt32_sc01_plus_touch_buttons.bin`
+  - Reported app size: `0x892c0`
+  - Free space in smallest app partition: `0x76d40` (`46%`)
+  - Build also updated `dependencies.lock` for the new TinyUSB dependency set
+
+## 2026-05-01 Follow-up: repeated same-key HID press could stick
+
+- New user feedback:
+  - pressing the same touchscreen button twice quickly can sometimes leave that key stuck
+  - the host keeps repeating that letter until another button press occurs
+- Root-cause reasoning:
+  - this points to a missing HID key release on the USB side, not the touchscreen side
+  - the previous implementation checked `tud_hid_ready()` only once before the press report
+  - the later release report was sent without retry/acceptance handling
+  - if that release was not accepted by TinyUSB at that moment, the host could keep the key logically held down
+- Code change applied:
+  - added `kUsbHidRetryDelayMs = 2`
+  - changed the USB HID sender task in `main/main.cpp` to:
+    - retry report submission until TinyUSB is mounted and ready
+    - verify both press and release report delivery
+    - send an explicit idle report before each new key press to clear any previously stuck state
+- Expected effect:
+  - back-to-back presses of the same button should now produce clean press/release pairs
+  - a missed release should no longer leave the host repeating a character
+- Verification result:
+  - Command: `idf.py build`
+  - Result: build succeeded
+  - Output binary: `build/wt32_sc01_plus_touch_buttons.bin`
+  - Reported app size: `0x893d0`
+  - Free space in smallest app partition: `0x76c30` (`46%`)
